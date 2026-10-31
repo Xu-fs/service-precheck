@@ -62,7 +62,11 @@ class GuideQA:
         headers = {}
         if key := os.getenv(config.key_env):
             headers["Authorization"] = "Bearer " + key
-        response = await self.client.post(config.base_url.rstrip("/") + endpoint, json=payload, headers=headers)
+        budget = getattr(self, 'budget', None)
+        if budget is not None:
+            response = await budget.send(self.client,config.base_url.rstrip('/')+endpoint,payload,headers)
+        else:
+            response = await self.client.post(config.base_url.rstrip("/") + endpoint, json=payload, headers=headers)
         if not 200 <= response.status_code < 300:
             raise AppError(502, "MODEL_SERVICE_ERROR", "模型服务暂时无法回答，请稍后重试", True)
         try:

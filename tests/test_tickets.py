@@ -11,6 +11,7 @@ from sqlalchemy import text
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from zhengwu_precheck.infrastructure.database import ChatRepository
 from zhengwu_precheck.infrastructure.staff_repository import StaffRepository
+from zhengwu_precheck.infrastructure.agent_repository import AgentRepository
 from zhengwu_precheck.core.errors import AppError
 
 AVAILABLE = importlib.util.find_spec('zhengwu_precheck.infrastructure.ticket_repository') is not None
@@ -44,6 +45,9 @@ class TicketTests(unittest.IsolatedAsyncioTestCase):
         self.now = stamp(30)  # 周五
         self.repo = TicketRepository(self.chat.engine, clock=lambda: self.now)
         await self.repo.initialize()
+        self.agent = AgentRepository(self.chat.engine,clock=lambda:self.now)
+        await self.agent.initialize()
+        self.submissions = {}
 
     async def asyncTearDown(self):
         if hasattr(self,'chat'):
@@ -54,7 +58,19 @@ class TicketTests(unittest.IsolatedAsyncioTestCase):
         return {'user_id':name, 'username':name, 'grants':await self.staff.grants(name)}
 
     async def create(self, key='create-1'):
-        return await self.repo.create('alice', {'matter_id':MATTER,'scenario_id':'rental-demo','title':'教学问题','content':'教学蓝色回执如何准备？','idempotency_key':key})
+        if key not in self.submissions:
+            payload={'matter_id':MATTER,'scenario_id':'rental-demo','title':'教学问题','content':'教学蓝色回执如何准备？'}
+            draft=await self.agent.create_draft('alice',payload)
+            confirmation=await self.agent.confirm_draft('alice',draft['id'],draft['version'])
+            self.submissions[key]={'draft_id':draft['id'],'draft_version':draft['version'],
+                                   'submission_confirmation_id':confirmation['id'],'idempotency_key':key}
+        return await self.repo.create('alice',self.submissions[key])
+
+    async def invalid_payload(self,payload):
+        payload=dict(payload); key=payload.pop('idempotency_key')
+        draft=await self.agent.create_draft('alice',payload)
+        confirmation=await self.agent.confirm_draft('alice',draft['id'],draft['version'])
+        return await self.repo.create_confirmed('alice',draft['id'],draft['version'],confirmation['id'],key)
 
     async def action(self, user, record, action, **kw):
         return await self.repo.staff_action(await self.who(user),record['id'],action,
@@ -160,10 +176,10 @@ class TicketTests(unittest.IsolatedAsyncioTestCase):
         cal = WorkCalendar(holidays=['2026-11-02'],workdays=['2026-11-01'])
         self.assertEqual(cal.accept_due(stamp(30)),datetime(2026,11,1,10,tzinfo=TZ).timestamp())
         with self.assertRaises(AppError):
-            await self.repo.create('alice',{'matter_id':MATTER,'scenario_id':'rental-demo','title':'教学','content':'测试',
+            await self.invalid_payload({'matter_id':MATTER,'scenario_id':'rental-demo','title':'教学','content':'测试',
                 'idempotency_key':'bad-link','conversation_id':'other-person'})
         with self.assertRaises(AppError):
-            await self.repo.create('alice',{'matter_id':MATTER,'scenario_id':'rental-demo','title':'教学','content':'测试',
+            await self.invalid_payload({'matter_id':MATTER,'scenario_id':'rental-demo','title':'教学','content':'测试',
                 'idempotency_key':'bad-precheck','precheck_id':'FAKE-1'})
 
     async def test_hotline_cannot_borrow_unrelated_handling_role_for_detail(self):
@@ -187,7 +203,7 @@ class TicketTests(unittest.IsolatedAsyncioTestCase):
     async def test_optional_link_types_are_rejected_before_database(self):
         for name in ('conversation_id','message_id'):
             with self.assertRaises(AppError) as error:
-                await self.repo.create('alice',{'matter_id':MATTER,'scenario_id':'rental-demo',
+                await self.invalid_payload({'matter_id':MATTER,'scenario_id':'rental-demo',
                     'title':'教学类型检查','content':'测试','idempotency_key':name,'conversation_id':None,name:['非法类型']})
             self.assertEqual(error.exception.status,422)
 

@@ -238,7 +238,7 @@ with sync_playwright() as p:
         ask(citizen, "教学蓝色回执无效引用测试", expected=NO_EVIDENCE)
         citizen.locator("#question").fill("教学蓝色回执模型故障测试")
         citizen.get_by_role("button", name="发送问题").click()
-        expect(citizen.get_by_text("回答服务暂时超时，请稍后重试", exact=True)).to_be_visible(timeout=15000)
+        expect(citizen.get_by_text("回答服务暂时超时，请稍后重试；可进入人工咨询继续处理。", exact=True)).to_be_visible(timeout=15000)
         expect(citizen.locator("#send")).to_be_enabled()
         passed.extend(["监督员SSR保存模板实际进入新HTTP模型请求", "已接纳请求冻结模板而后续请求采用新版", "无效模型引文被真实校验拒答且模型故障不同于无依据"])
         old_prompt = supervisor.locator("details").filter(has=supervisor.locator('input[name="version"][value="' + str(initial_version) + '"]'))
@@ -287,7 +287,7 @@ with sync_playwright() as p:
         supervisor.goto(URL + "/staff/audits?kind=message&username=browser-content&matter_id=residence-permit&flag=version_conflict")
         expect(supervisor.locator("tbody")).to_contain_text(record_id)
         supervisor.goto(URL + "/staff/audits?kind=precheck")
-        expect(supervisor.get_by_text("预检记录尚未接入。当前没有材料预检引擎或预检原始记录。", exact=True)).to_be_visible()
+        expect(supervisor.get_by_text("预检审计视图尚未接入。已授权共享的预检摘要请在对应工单中核对。", exact=True)).to_be_visible()
         expect(supervisor.locator("tbody")).to_contain_text("没有符合条件且获授权的记录")
         passed.extend(["监督员授权对话SSR按账号事项日期筛选及标记复核", "风险筛选保留原始正文引用且预检明确空状态", "同事项但无记录授权的真实对话拒绝404"])
 

@@ -1,0 +1,9 @@
+{% if shared and (shared.materials or shared.precheck or shared.exceptions) %}
+<section class="panel"><h2>已选择共享的教学资料</h2>
+{% for material in shared.materials %}<p>{{ material.filename or '教学材料' }} · 版本{{ material.version }}
+{% if material.available %}<a href="{% if staff_materials %}/staff/api/tickets/{{ shared_ticket_id }}/materials/{{ material.id }}{% else %}/agent/materials/{{ material.id }}/download{% endif %}">下载已授权材料</a>
+{% else %}材料已变化或授权已撤回，当前不可下载。{% endif %}</p>{% endfor %}
+{% if shared.precheck %}<h3>提交时关联的教学预检摘要</h3><p>{{ shared.precheck.id }} · {{ shared.precheck.result }} · {{ shared.precheck.teaching_rule_version }}</p>
+<p>{{ shared.precheck.notice }}</p><p>这是所选预检的历史摘要。材料或规则变化后须重新核验；不授权未共享的材料字段，也不代表审批结论。</p>{% endif %}
+{% for exception in shared.exceptions %}<h3>待人工核实的异常：{{ {'expired_history':'有效期疑问','missing_evidence':'依据不足','version_conflict':'规则版本冲突','system_unavailable':'服务不可用'}.get(exception.kind,exception.kind) }}</h3><p>{{ exception.detail }}</p>{% endfor %}
+</section>{% endif %}

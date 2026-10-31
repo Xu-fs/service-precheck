@@ -102,8 +102,11 @@ async def citizen_list(request: Request):
 async def create(request: Request):
     data = await _body(request, citizen=True)
     who = await _citizen(request)
-    if set(data) - {'matter_id','scenario_id','title','content','idempotency_key','conversation_id','message_id'}:
-        raise AppError(422, 'INVALID_REQUEST', '工单只接收问题信息，附件、预检与正式办件关联暂未开放')
+    if _form(request) and 'draft_version' in data:
+        try:
+            data['draft_version'] = int(data['draft_version'])
+        except ValueError:
+            raise AppError(422,'INVALID_DRAFT','草稿版本无效') from None
     result = await request.app.state.ticket_repo.create(who['user_id'], data)
     return RedirectResponse('/my/tickets?ticket_id=' + quote(result['id']), 303) if _form(request) else result
 

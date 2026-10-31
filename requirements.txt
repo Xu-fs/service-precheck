@@ -14,3 +14,7 @@ PyJWT>=2.10,<3
 python-multipart>=0.0.20,<1
 # 知识库文本PDF提取；扫描PDF不提供虚假OCR结果。
 pypdf>=6.21.4,<7
+# 本地虚构教学图片/扫描PDF识别；不发送材料到外部服务。
+Pillow==13.0.0
+rapidocr-onnxruntime==1.4.4
+pypdfium2==5.14.0

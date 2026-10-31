@@ -7,6 +7,7 @@ import asyncio
 import hashlib
 import json
 import time
+from contextlib import asynccontextmanager
 from uuid import uuid4
 
 from sqlalchemy import text
@@ -94,6 +95,8 @@ class TicketRepository:
         return list(groups.values())
 
     def _role(self,grants,role,matter,permission):
+        if matter == 'unassigned':
+            grants = [g for g in grants if g['matter_id'] == 'unassigned']
         return allows([g for g in grants if g['role_code']==role],permission,matter)
 
     async def _ticket(self,c,tid):
@@ -136,23 +139,116 @@ class TicketRepository:
         await c.execute(text('INSERT INTO ticket_jobs(id,ticket_id,round_no,kind,due_at) VALUES(:id,:tid,:round,:kind,:due)'),
             {'id':str(uuid4()),'tid':t['id'],'round':round_no,'kind':kind,'due':due})
 
-    async def create(self,user_id,data):
+    async def create(self, user_id, data):
+        if not user_id:
+            fail('LOGIN_REQUIRED', '请先登录后提交工单', 401)
+        required = {'draft_id', 'draft_version', 'submission_confirmation_id', 'idempotency_key'}
+        if not isinstance(data, dict) or set(data) != required:
+            fail('SUBMISSION_CONFIRMATION_REQUIRED', '请先预览并确认当前草稿及共享范围', 409)
+        return await self.create_confirmed(user_id, data['draft_id'], data['draft_version'],
+                                           data['submission_confirmation_id'], data['idempotency_key'])
+
+    async def create_confirmed(self, user_id, draft_id, draft_version, confirmation_id, idempotency_key):
+        if not user_id:
+            fail('LOGIN_REQUIRED', '请先登录后提交工单', 401)
+        if type(draft_version) is not int or draft_version < 1:
+            fail('INVALID_DRAFT', '草稿版本无效', 422)
+        if any(not isinstance(v, str) or not 1 <= len(v) <= 128 for v in (draft_id, confirmation_id, idempotency_key)) or len(idempotency_key) < 8:
+            fail('INVALID_DRAFT', '提交标识无效', 422)
+        envelope = dict(draft_id=draft_id, draft_version=draft_version,
+                        submission_confirmation_id=confirmation_id, idempotency_key=idempotency_key)
+        async with self.engine.begin() as c:
+            await self._lock(c)
+            active = (await c.execute(text("SELECT id FROM users WHERE id=:u AND status='active'"), {'u': user_id})).scalar()
+            if not active:
+                fail('LOGIN_REQUIRED', '登录身份已失效', 401)
+            draft = (await c.execute(text('SELECT * FROM agent_drafts WHERE id=:id AND user_id=:u'),
+                                     {'id': draft_id, 'u': user_id})).mappings().first()
+            if not draft or draft['version'] != draft_version:
+                fail('DRAFT_CHANGED', '草稿不存在或已变化，请重新预览确认')
+            confirmation = (await c.execute(text('''SELECT * FROM agent_draft_confirmations
+                WHERE id=:id AND user_id=:u AND draft_id=:draft AND draft_version=:version AND content_hash=:hash'''),
+                {'id': confirmation_id, 'u': user_id, 'draft': draft_id, 'version': draft_version,
+                 'hash': draft['content_hash']})).mappings().first()
+            if not confirmation:
+                fail('SUBMISSION_CONFIRMATION_REQUIRED', '请由本人重新确认当前草稿及共享范围')
+            submitted = (await c.execute(text('SELECT * FROM agent_submissions WHERE draft_id=:id'), {'id': draft_id})).mappings().first()
+            # 原生表单重试会重新签发确认，操作指纹仍绑定首次成功的确认。
+            # 保留既有操作台账的指纹格式与不同草稿/版本之间的冲突检查。
+            if submitted and submitted['content_hash'] == draft['content_hash']:
+                envelope['submission_confirmation_id'] = submitted['confirmation_id']
+            key, fp, replay = await self._replay(c, user_id, 'confirmed-create', envelope)
+            if replay:
+                await self._citizen(c, user_id, await self._ticket(c, replay['id']))
+                return replay
+            if submitted:
+                if submitted['content_hash'] != draft['content_hash']:
+                    fail('DRAFT_ALREADY_SUBMITTED', '原草稿已经提交，请在原工单继续补充')
+                result = await self._ticket(c, submitted['ticket_id'])
+                await self._citizen(c, user_id, result)
+                return await self._save(c, user_id, key, fp, result)
+            if confirmation['consumed_at'] is not None or confirmation['expires_at'] <= self.clock():
+                fail('CONFIRMATION_EXPIRED', '提交确认已过期或使用，请重新确认')
+            payload = json.loads(draft['payload'])
+            await self._validate_links(c,user_id,payload)
+            result = await self._create_payload(user_id, payload, c)
+            consumed = await c.execute(text('''UPDATE agent_draft_confirmations SET consumed_at=:now
+                WHERE id=:id AND consumed_at IS NULL AND expires_at>:now'''), {'now': self.clock(), 'id': confirmation_id})
+            if consumed.rowcount != 1:
+                fail('CONFIRMATION_EXPIRED', '提交确认已过期或使用')
+            await c.execute(text('INSERT INTO agent_submissions VALUES(:draft,:confirmation,:ticket,:hash)'),
+                            {'draft': draft_id, 'confirmation': confirmation_id, 'ticket': result['id'], 'hash': draft['content_hash']})
+            return await self._save(c, user_id, key, fp, result)
+
+    @asynccontextmanager
+    async def _existing_connection(self, conn):
+        yield conn
+
+    async def _validate_links(self,c,user_id,payload):
+        case_id=payload.get('case_id')
+        if case_id:
+            case=(await c.execute(text('SELECT id FROM conversations WHERE id=:id AND user_id=:user'),{'id':case_id,'user':user_id})).first()
+            if not case:
+                fail('INVALID_RECORD_LINK','只能关联本人的咨询',422)
+        frozen=payload.get('shared_material_versions',[])
+        if set(payload.get('shared_material_ids',[]))!={v['id'] for v in frozen}:
+            fail('MATERIAL_CHANGED','共享范围与材料版本不一致，请重新预览')
+        for old in frozen:
+            current=(await c.execute(text('''SELECT version,sha256 FROM private_materials
+                WHERE id=:id AND user_id=:user AND case_id=:case AND consent=1'''),
+                {'id':old['id'],'user':user_id,'case':case_id})).mappings().first()
+            if not current or current['version']!=old['version'] or current['sha256']!=old['sha256']:
+                fail('MATERIAL_CHANGED','材料已变化或授权已撤回，请重新预览确认')
+        precheck_id=payload.get('precheck_id')
+        if precheck_id:
+            exists=(await c.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='precheck_records'"))).first()
+            if not exists:
+                fail('INVALID_PRECHECK','预检记录不存在',422)
+            row=(await c.execute(text('SELECT payload FROM precheck_records WHERE id=:id AND user_id=:user AND case_id=:case'),
+                {'id':precheck_id,'user':user_id,'case':case_id})).scalar()
+            if not row:
+                fail('INVALID_PRECHECK','只能关联本人的有效预检',422)
+            record=json.loads(row)
+            validator=getattr(self,'validate_current_precheck',None)
+            if validator is None:
+                fail('PRECHECK_VALIDATION_UNAVAILABLE','预检关联校验暂不可用，请先移除关联并转人工')
+            await validator(user_id,record)
+
+    async def _create_payload(self,user_id,data,conn):
         if not user_id: fail('LOGIN_REQUIRED','请先登录后提交工单',401)
         if not isinstance(data,dict): fail('INVALID_TICKET_INPUT','请提供有效工单内容',422)
-        if data.get('precheck_id') or data.get('formal_case_id'):
+        if data.get('formal_case_id'):
             fail('UNSUPPORTED_LINK','本阶段未接入预检记录与正式办件，不能填写对应编号',422)
         for name in ('conversation_id','message_id'):
             value=data.get(name)
             if value is not None and (not isinstance(value,str) or len(value)>128):
                 fail('INVALID_RECORD_LINK','咨询关联编号格式不正确',422)
         matter,scenario=data.get('matter_id'),data.get('scenario_id')
-        if not any(m['matter_id']==matter and m['scenario_id']==scenario for m in MATTERS):
+        if not any(m['matter_id']==matter and m['scenario_id']==scenario for m in MATTERS) and (matter,scenario) != ('unassigned','manual-triage'):
             fail('INVALID_MATTER','请选择有效事项与教学情形',422)
         title,content=field(data,'title',120),field(data,'content')
-        async with self.engine.begin() as c:
+        async with self._existing_connection(conn) as c:
             await self._lock(c)
-            key,fp,replay=await self._replay(c,user_id,'create',data)
-            if replay:return replay
             # 只保存必要关联标识，不自动授予工作人员完整历史会话正文。
             cid,mid=data.get('conversation_id') or None,data.get('message_id') or None
             if cid:
@@ -174,7 +270,7 @@ class TicketRepository:
             await self._notice(c,t,'submitted',t['id']+':submitted','人工工单已提交窗口队列，不代表正式申请已受理。')
             for kind,due in [('accept_overdue',t['accept_due']),('reply_overdue',t['first_reply_due'])]:
                 await self._schedule(c,t,kind,due)
-            return await self._save(c,user_id,key,fp,t)
+            return t
 
     async def _acl(self,c,identity,include_progress=True):
         """SQL先筛选权限+事项+处理关系，不能先分页再过滤，避免数量泄露。"""
@@ -182,7 +278,7 @@ class TicketRepository:
         clauses=[]; params={'viewer':uid}
         for i,g in enumerate(grants):
             p=set(g['permissions']); role=g['role_code']
-            if g['matter_id']=='*': scope='1=1'
+            if g['matter_id']=='*': scope="t.matter_id!='unassigned'"
             else:
                 scope=f't.matter_id=:scope{i}'; params[f'scope{i}']=g['matter_id']
             relationship='(t.owner_id=:viewer OR EXISTS(SELECT 1 FROM ticket_transfers tr WHERE tr.ticket_id=t.id AND (tr.from_user_id=:viewer OR tr.target_user_id=:viewer)))'
@@ -233,7 +329,36 @@ class TicketRepository:
         if not row: fail('TICKET_NOT_FOUND','工单不存在或无权访问',404)
         return dict(row),grants
 
-    async def _detail(self,c,t,hotline=False):
+    async def draft_context(self,user_id,draft_id):
+        async with self.engine.connect() as c:
+            payload=(await c.execute(text('SELECT payload FROM agent_drafts WHERE id=:id AND user_id=:u'),
+                {'id':draft_id,'u':user_id})).scalar()
+            if payload is None:
+                fail('DRAFT_NOT_FOUND','草稿不存在或无权访问',404)
+            return await self._linked_context(c,user_id,json.loads(payload))
+
+    async def _linked_context(self,c,user_id,payload):
+        shared={'materials':[],'precheck':None,'exceptions':[]}
+        for frozen in payload.get('shared_material_versions',[]):
+            current=(await c.execute(text('SELECT version,sha256,consent FROM private_materials WHERE id=:id AND user_id=:u'),
+                {'id':frozen['id'],'u':user_id})).mappings().first()
+            shared['materials'].append({k:frozen[k] for k in ('id','filename','version') if k in frozen} | {
+                'available':bool(current and current['consent'] and current['version']==frozen['version'] and current['sha256']==frozen['sha256'])})
+        if payload.get('precheck_id'):
+            raw=(await c.execute(text('SELECT payload FROM precheck_records WHERE id=:id AND user_id=:u AND case_id=:case'),
+                {'id':payload['precheck_id'],'u':user_id,'case':payload.get('case_id')})).scalar()
+            if raw:
+                record=json.loads(raw)
+                # 仅共享历史结果摘要；逐材料字段不因关联一个预检编号而自动共享。
+                shared['precheck']={k:record[k] for k in ('id','result','notice','teaching_rule_version','selection_snapshot_id') if k in record}
+        for eid in payload.get('exception_ids',[]):
+            row=(await c.execute(text('SELECT id,kind,detail FROM agent_exceptions WHERE id=:id AND case_id=:case AND principal_key=:who'),
+                {'id':eid,'case':payload.get('case_id'),'who':'user:'+user_id})).mappings().first()
+            if row:
+                shared['exceptions'].append(dict(row))
+        return shared
+
+    async def _detail(self,c,t,hotline=False,include_shared=True):
         async def rows(table,order):
             return [dict(r) for r in (await c.execute(text('SELECT * FROM '+table+' WHERE ticket_id=:id ORDER BY '+order),{'id':t['id']})).mappings().all()]
         # 相同时钟值仍按实际插入顺序显示。迁移其他数据库时改为显式自增序列。
@@ -246,7 +371,13 @@ class TicketRepository:
             transfers=[]
             transitions=[{k:r[k] for k in ('action','to_status','occurred_at')} for r in transitions]
         else: ticket=t
-        return {'ticket':ticket,'messages':messages,'transfers':transfers,'transitions':transitions}
+        result={'ticket':ticket,'messages':messages,'transfers':transfers,'transitions':transitions}
+        if not hotline and include_shared:
+            row=(await c.execute(text('SELECT d.payload FROM agent_submissions s JOIN agent_drafts d ON d.id=s.draft_id WHERE s.ticket_id=:id'),
+                {'id':t['id']})).scalar()
+            if row:
+                result['shared_context']=await self._linked_context(c,t['user_id'],json.loads(row))
+        return result
 
     async def citizen_detail(self,user_id,tid):
         async with self.engine.connect() as c:
@@ -260,7 +391,7 @@ class TicketRepository:
             # 的全事项进度权限再叠加一个无处理关系的审核岗位来获取内部正文。
             acl,params,_=await self._acl(c,identity,include_progress=False)
             handling=(await c.execute(text('SELECT 1 FROM tickets t WHERE t.id=:id AND '+acl),{**params,'id':tid})).first() is not None
-            return await self._detail(c,t,hotline=not handling)
+            return await self._detail(c,t,hotline=not handling,include_shared=allows(grants,'material.view',t['matter_id']))
 
     def _version(self,t,data):
         value=data.get('expected_version')

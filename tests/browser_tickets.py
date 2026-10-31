@@ -65,19 +65,22 @@ with sync_playwright() as p:
         anonymous_context, anonymous = new_page()
         anonymous.goto(URL + "/my/tickets")
         expect(anonymous.get_by_role("link", name="返回首页登录", exact=True)).to_be_visible()
-        assert anonymous.locator('form[action="/tickets"]').count() == 0
+        assert anonymous.locator('form[action="/tickets/drafts"]').count() == 0
         assert anonymous_context.request.get(URL + "/tickets").status == 401
         passed.append("匿名只有登录提示，不能查看个人工单列表")
 
         citizen_context, citizen = new_page()
         citizen_login(citizen, "browser-tickets")
-        form = citizen.locator('form[action="/tickets"]')
+        form = citizen.locator('form[action="/tickets/drafts"]')
         form.locator('[name="matter_id"]').select_option("residence-permit")
         form.locator('[name="scenario_id"]').select_option("rental-demo")
         form.locator('[name="title"]').fill(TITLE)
         form.locator('[name="content"]').fill(QUESTION)
         with citizen.expect_navigation(wait_until="networkidle"):
-            form.get_by_role("button", name="提交工单", exact=True).click()
+            form.get_by_role("button", name="预览工单草稿", exact=True).click()
+        expect(citizen.get_by_role('heading',name='共享范围',exact=True)).to_be_visible()
+        with citizen.expect_navigation(wait_until="networkidle"):
+            citizen.get_by_role('button',name='确认以上内容及共享范围，提交工单',exact=True).click()
         ticket_id = parse_qs(urlparse(citizen.url).query)["ticket_id"][0]
         assert ticket_id.startswith("TK-")
         current = detail(citizen_context, ticket_id)["ticket"]

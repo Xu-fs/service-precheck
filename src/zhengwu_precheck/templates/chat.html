@@ -13,7 +13,7 @@
 <body>
   <header class="topbar">
     <a class="brand" href="/" aria-label="政务易办首页"><span class="brand-mark" aria-hidden="true">易</span><span>政务易办<small>办事指南咨询</small></span></a>
-    <div class="account"><span id="identity">公开咨询无需登录</span><button id="login-open" class="text-button" type="button">登录</button><button id="logout" class="text-button" type="button" hidden>退出登录</button></div>
+    <div class="account"><a href="/assistant">材料准备与人工协作</a><a href="/my/tickets">我的工单</a><span id="identity">公开咨询无需登录</span><button id="login-open" class="text-button" type="button">登录</button><button id="logout" class="text-button" type="button" hidden>退出登录</button></div>
   </header>
   <div class="workspace">
     <aside class="sidebar" aria-label="咨询说明">
@@ -41,7 +41,7 @@
           <textarea id="question" name="question" maxlength="2000" rows="2" placeholder="描述你想了解的材料要求……" required></textarea>
           <div class="composer-controls"><span id="counter">0 / 2000</span><div><button id="stop" class="secondary-button" type="button" hidden>停止回答</button><button id="send" class="primary-button" type="submit">发送问题 <span aria-hidden="true">↑</span></button></div></div>
         </form>
-        <p class="footer-note">回答依据教学指南；实际办理请以受理部门现行规定为准。<a href="/my/tickets">我的人工工单与站内消息</a>。材料上传与预检暂未开放。</p>
+        <p class="footer-note">回答依据教学指南；实际办理请以受理部门现行规定为准。<a href="/my/tickets">我的人工工单与站内消息</a> · <a href="/assistant">教学材料上传与辅助预检</a>。</p>
       </div>
     </main>
   </div>

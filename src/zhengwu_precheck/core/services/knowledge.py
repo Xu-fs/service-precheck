@@ -153,8 +153,13 @@ class KnowledgeService:
             await self._assert_job(conn, job)
             await conn.execute(text("UPDATE knowledge_jobs SET stage='embedding' WHERE id=:id"), {"id": job["id"]})
         vectors = []
-        for start in range(0, len(chunks), 32):
-            vectors.append(await self.qa.embed([c["text_content"] for c in chunks[start:start + 32]]))
+        from zhengwu_precheck.core.services.model_budget import model_principal
+        identity=model_principal.set('staff:'+row['created_by'])
+        try:
+            for start in range(0, len(chunks), 32):
+                vectors.append(await self.qa.embed([c["text_content"] for c in chunks[start:start + 32]]))
+        finally:
+            model_principal.reset(identity)
         if signature != self.signature():
             raise AppError(503, "KNOWLEDGE_INDEX_INCOMPATIBLE", "处理期间模型配置变化，请重新建立新草稿")
         matrix = np.ascontiguousarray(np.concatenate(vectors).astype("float32"))

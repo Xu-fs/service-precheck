@@ -26,8 +26,8 @@ async def chat(body: ChatInput, request: Request, who=Depends(principal)):
     except ValueError:
         raise AppError(400, "INVALID_IDEMPOTENCY_KEY", "请提供有效的请求标识") from None
     ip = request.client.host if request.client else "unknown"
-    request.app.state.limiter.check("chat-ip:" + ip, 120, 600)
-    request.app.state.limiter.check("chat-owner:" + who["key"])
+    await request.app.state.shared_limiter.check("chat-ip:" + ip, 120, 600)
+    await request.app.state.shared_limiter.check("chat-owner:" + who["key"])
     sid = str(body.session_id) if body.session_id else None
     conversation = await repo.conversation(sid, who) if sid else None
     existing = await repo.existing(who, key)
@@ -69,6 +69,8 @@ async def chat(body: ChatInput, request: Request, who=Depends(principal)):
                 async def progress(stage, text):
                     await queue.put(("status", {"stage": stage, "text": text}))
                 async def produce():
+                    from zhengwu_precheck.core.services.model_budget import model_principal
+                    model_principal.set(who['key'])
                     try:
                         if confirm:
                             token = await repo.set_confirmation(turn)
@@ -130,7 +132,7 @@ async def chat(body: ChatInput, request: Request, who=Depends(principal)):
                 error = AppError(500, "CHAT_FAILED", "回答暂时未能完成，请稍后重试", True)
             with anyio.CancelScope(shield=True):
                 await repo.fail(turn, error.code)
-            yield emit("error", {"code": error.code, "message": error.message, "retryable": error.retryable})
+            yield emit("error", {"code": error.code, "message": error.message + '；可进入人工咨询继续处理。', "retryable": error.retryable})
         finally:
             if task and not task.done():
                 task.cancel()

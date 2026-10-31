@@ -3,6 +3,8 @@ from zhengwu_precheck.core.errors import AppError
 
 
 def body_limit(path):
+    if path.startswith('/agent/cases/') and path.endswith('/materials'):
+        return 11 * 1024 * 1024
     if path == "/staff/api/knowledge/uploads":
         return 21 * 1024 * 1024
     if path.startswith("/staff/api/knowledge/") or path == "/staff/api/rules":

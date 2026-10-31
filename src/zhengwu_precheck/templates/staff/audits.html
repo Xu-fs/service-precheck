@@ -12,7 +12,7 @@
   <label>风险类别 <select name="flag"><option value="">全部</option>{% for value,label in flag_options.items() %}<option value="{{ value }}" {% if filters.get('flag') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
   <button type="submit">筛选</button>
 </form>
-{% if filters.get('kind') == 'precheck' %}<p class="notice">预检记录尚未接入。当前没有材料预检引擎或预检原始记录。</p>{% endif %}
+{% if filters.get('kind') == 'precheck' %}<p class="notice">预检审计视图尚未接入。已授权共享的预检摘要请在对应工单中核对。</p>{% endif %}
 <p>授权范围内共 {{ records.total }} 条；第 {{ records.page }} 页。</p>
 <table><thead><tr><th>记录</th><th>类型</th><th>办事人</th><th>事项快照</th><th>原始状态</th><th>操作</th></tr></thead><tbody>
 {% for item in records['items'] %}<tr><td>{{ item.id }}</td><td>{{ '对话回答' if item.kind == 'message' else '拒绝访问事件' }}</td><td>{{ item.person_label }}</td><td>{{ item.matter_id or '未关联可见事项' }}</td><td>{{ item.outcome }}</td><td><a href="/staff/audits/{{ item.id }}">查看与复核</a></td></tr>

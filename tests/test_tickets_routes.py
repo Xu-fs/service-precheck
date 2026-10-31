@@ -109,14 +109,17 @@ class TicketIntegrationTests(unittest.IsolatedAsyncioTestCase):
         headers = {'X-CSRF-Token': boot['csrf_token']}
         login = await self.client.post('/auth/login', headers=headers, json={'username':'ticket-window','password':'ticket-test-password'})
         self.assertEqual(login.status_code, 200, login.text)
-        created = await self.client.post('/tickets', headers=headers, json={'matter_id':'residence-permit','scenario_id':'rental-demo','title':'教学工单','content':'仅虚构问题','idempotency_key':'integration-create-123'})
+        draft=(await self.client.post('/agent/drafts',headers=headers,json={'matter_id':'residence-permit','scenario_id':'rental-demo','title':'教学工单','content':'仅虚构问题','shared_material_ids':[]})).json()
+        confirmation=(await self.client.post('/agent/drafts/'+draft['id']+'/confirm',headers=headers,json={'draft_version':draft['version']})).json()
+        submit={'draft_id':draft['id'],'draft_version':draft['version'],'submission_confirmation_id':confirmation['id'],'idempotency_key':'integration-create-123'}
+        created = await self.client.post('/tickets', headers=headers, json=submit)
         self.assertEqual(created.status_code, 200, created.text)
         ticket = created.json()
         tid = ticket['id']
         self.assertIsNone(ticket['precheck_id'])
         self.assertIsNone(ticket['formal_case_id'])
         # 原生表单复用相同幂等键，证明无脚本创建后备与JSON提交不会重复建单。
-        form = {'csrf_token':boot['csrf_token'],'matter_id':'residence-permit','scenario_id':'rental-demo','title':'教学工单','content':'仅虚构问题','idempotency_key':'integration-create-123'}
+        form = {'csrf_token':boot['csrf_token'],**{k:str(v) for k,v in submit.items()}}
         native = await self.client.post('/tickets', data=form)
         self.assertEqual(native.status_code, 303, native.text)
         self.assertIn(tid, native.headers['location'])

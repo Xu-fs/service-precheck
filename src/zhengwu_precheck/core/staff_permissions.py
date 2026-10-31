@@ -16,7 +16,7 @@ ROLE_PERMISSIONS = {
 # 只用于导航和列表入口；正文及每个动作仍检查原岗位、事项和处理关系。
 for _ticket_role in ('window', 'reviewer', 'hotline', 'director'):
     ROLE_PERMISSIONS[_ticket_role].add('ticket.list')
-MATTER_NAMES = {"residence-permit": "居住证申领", "sole-trader-registration": "个体工商户设立登记", "*": "全部事项（显式授权）"}
+MATTER_NAMES = {"residence-permit": "居住证申领", "sole-trader-registration": "个体工商户设立登记", "unassigned": "人工咨询分流（须单独授权）", "*": "全部已知事项（显式授权）"}
 MODULES = [
     {"slug": "knowledge", "name": "办事知识库", "permission": "knowledge.read", "batch": 2},
     {"slug": "rules", "name": "规则与清单", "permission": "rule.read", "batch": 2},

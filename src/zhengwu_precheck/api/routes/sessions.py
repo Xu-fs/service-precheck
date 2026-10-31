@@ -50,7 +50,7 @@ async def confirm(session_id: UUID, body: MatterInput, request: Request, who=Dep
 @router.post("/auth/login", dependencies=[Depends(csrf)])
 async def login(body: LoginInput, request: Request, response: Response):
     ip = request.client.host if request.client else "unknown"
-    request.app.state.limiter.check("login:" + ip, 5, 60)
+    await request.app.state.shared_limiter.check("login:" + ip, 5, 60)
     token, username = await request.app.state.repo.login(body.username, body.password)
     response.set_cookie("zw_auth", token, httponly=True, secure=request.app.state.settings.secure_cookies,
                         samesite="lax", max_age=8 * 3600, path="/")

@@ -48,7 +48,7 @@ async def login_screen(request: Request):
 async def login(request: Request):
     await staff_csrf(request)
     ip = request.client.host if request.client else "unknown"
-    request.app.state.limiter.check("staff-login:" + ip, 5, 60)
+    await request.app.state.shared_limiter.check("staff-login:" + ip, 5, 60)
     try:
         if is_form(request):
             data = dict(await request.form())
@@ -77,7 +77,7 @@ async def login(request: Request):
 @router.post("/api/auth/refresh")
 async def refresh(request: Request):
     csrf_cookie = await staff_csrf(request)
-    request.app.state.limiter.check("staff-refresh:" + digest(request.cookies.get(REFRESH, "")), 12, 60)
+    await request.app.state.shared_limiter.check("staff-refresh:" + digest(request.cookies.get(REFRESH, "")), 12, 60)
     try:
         values = await request.app.state.staff_auth.refresh(request.cookies.get(REFRESH), csrf_cookie)
     except AppError as error:

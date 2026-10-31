@@ -4,7 +4,7 @@
 
 ## 状态与身份
 
-已实现教学问答入口，不包含材料识别、预检、人工工单或真实政务对接。`session_id` 对应 `conversations.id`，与登录会话 `auth_sessions.id` 不同，也不是预检编号、工单编号或正式办件编号。
+已实现教学问答、有限工具助手、私有教学材料与辅助预检、确认后人工工单；真实政务对接仍未开放。`session_id` 对应 `conversations.id`，与登录会话 `auth_sessions.id` 不同，也不是预检编号、工单编号或正式办件编号。
 
 匿名用户通过HttpOnly访问Cookie隔离；登录用户通过HttpOnly登录Cookie取得身份。所有会话读取、提问、确认事项均检查当前所有者；登录失效返回401，不回落匿名身份。匿名历史不自动归入登录账号。客户端不能指定user_id。
 
@@ -22,7 +22,7 @@
 
 写请求均需 `X-CSRF-Token`；浏览器同源发送。Cookie生产环境应通过HTTPS并启用Secure。登录会话有效期8小时；匿名Cookie有效期30天，此期限不是业务数据留存期限。
 
-事项与情形：`residence-permit`／`rental-demo`；`sole-trader-registration`／`standard-demo`。两事项均支持后台发布教学指南。产品无默认个体工商户指南，未配置时正常依据不足。居住证在首次后台发布前兼容原本地教学指南；首次发布后只使用适用公开版本，即使全部停用也不恢复旧文件。
+事项与情形：`residence-permit`／`rental-demo`；`sole-trader-registration`／`standard-demo`。两事项均支持后台发布教学指南；候选资料在`data/materials/`，须审核发布后启用，未发布时正常依据不足。居住证在首次后台发布前兼容原本地教学指南；首次发布后只使用适用公开版本，即使全部停用也不恢复旧文件。
 
 ## POST /chat
 
@@ -95,7 +95,7 @@ data: {"request_id":"...","session_id":"...","message_id":"...","user_message_id
 
 流内技术错误：MODEL_TIMEOUT、MODEL_SERVICE_ERROR、MODEL_RESPONSE_INVALID、CONTEXT_TOO_LONG、REQUEST_INTERRUPTED、CHAT_FAILED。HTTP状态保持200，通过error事件传达；外部响应正文、口令、密钥和堆栈不返回浏览器。
 
-个人材料、预检记录和工单尚未开放，不通过问答模型代理查询这些数据。工作人员已开放以下第二三批接口；不获得角色名称之外的全局权限。
+个人材料、预检及人工工单通过下列独立受控接口访问；公开问答不自动读取私人材料。工作人员不因角色名称获得全局权限。
 
 ## 工作人员知识、模板与审计接口
 
@@ -143,10 +143,46 @@ GET `/my/tickets` 为办事人页面；GET `/staff/tickets` 和 `/staff/tickets/
 | GET | `/staff/api/tickets/{id}/transitions` | 授权流转时间线 |
 | GET | `/staff/api/assignees?ticket_id=...&matter_id=...` | 本次转派允许的接收人 |
 
-创建接收 matter_id、scenario_id、title（1—120字符）、content（1—4000字符）、idempotency_key（8—128字符），可选本人同事项conversation_id/message_id。预检和正式办件未接入，不能传入伪造编号。所有工单动作要求 expected_version 与 idempotency_key；转派另需 target_user_id、target_role、reason（1—1000字符）；拒收/撤回也需reason。通知已读的页面适配层要求操作标识与版本占位0，本身按对象幂等。
+创建只接收`draft_id`、`draft_version`、`submission_confirmation_id`、`idempotency_key`（8—128字符）；不再接收原始标题/正文直接建单。先创建及预览本人草稿，再通过独立确认接口取得凭证。传统页面`POST /tickets/drafts`准备草稿，`POST /tickets/drafts/{id}/submit`校验预览版本和哈希后签发确认并进入同一创建服务。所有后续工单动作要求 expected_version 与 idempotency_key；转派另需 target_user_id、target_role、reason（1—1000字符）；拒收/撤回也需reason。通知已读的页面适配层要求操作标识与版本占位0，本身按对象幂等。
 
 公开咨询凭证不能提交个人工单；办事人写请求沿用X-CSRF-Token，后台沿用独立JWT和CSRF。列表先在SQL筛权限、事项和处理关系再分页，status/matter_id/page/page_size/scope（all/queue/mine/pending）可选。热线只获取问题、进度和答复，不展示内部转派原因与原会话链接；工程师无工单访问权限。责任转移仅在接收人明确确认事务中发生。
 
 错误沿用统一JSON：未登录401、权限/CSRF403、对象不可见404、状态/版本或幂等内容冲突409、字段422。重复请求使用同一操作标识和完全相同载荷；旧责任人已失去处理权限时操作重试拒绝，先刷新确认状态。
 
-人工工单编号为TK-UUID；precheck_id与formal_case_id均为null，不生成正式办件模拟成功状态。没有个人附件接口。时钟、教学工作日历和实际验收详见[工单运行说明](第四批工单运行说明.md)。
+人工工单编号为TK-UUID；历史表precheck_id与formal_case_id保持null。新增材料、预检和异常关联从草稿及agent_submissions映射读取，详情的`shared_context`展示授权材料元数据、历史预检摘要及选中异常。正式办件未接入。时钟和教学工作日历见[工单运行说明](第四批工单运行说明.md)。
+
+## 助手、草稿和私有教学材料
+
+以下写接口沿用办事人CSRF，身份由服务端取得；上传、草稿、预检和个人记录要求登录。工具结果使用`status/data/error/trace_id`封装，HTTP 200不等于工具执行成功，须检查status；直接校验失败仍可返回对应4xx。
+
+| 方法及路径 | 关键请求或返回 |
+| --- | --- |
+| GET `/assistant` | 材料准备与人工协作页面 |
+| POST `/agent/cases`，GET `/agent/cases/{id}` | 建立本人/匿名案例，读取当前选择与版本 |
+| GET `/agent/cases/{id}/rules` | 查询参数matter_id/scenario_id；返回snapshot_id、指南、教学规则批准状态 |
+| POST `/agent/cases/{id}/selection` | matter_id、scenario_id、snapshot_id；用户直接确认规则 |
+| POST `/agent/cases/{id}/ask` | question；执行有限六工具循环 |
+| POST `/agent/cases/{id}/exceptions` | kind、detail；记录待人工核实的异常，不自动建单 |
+| POST `/agent/cases/{id}/exception-draft` | exception_id、summary、expected_case_version；受控准备异常草稿 |
+| POST `/agent/drafts` | title/content/matter_id/scenario_id，可选case_id、本人conversation_id/message_id、shared_material_ids、有效precheck_id；异常从受控操作关联 |
+| GET/PUT `/agent/drafts/{id}` | 读取草稿；更新须expected_version和data，原异常可保留或明确移除，不能任意新增关联 |
+| POST `/agent/drafts/{id}/confirm` | draft_version；签发当前版本提交确认，模型无此工具 |
+| GET `/my/ticket-drafts/{id}` | 正文、共享材料版本、预检摘要和异常预览 |
+| POST `/tickets/drafts/{id}/edit` | 原生表单title/content/draft_version、操作标识及可选remove_materials/remove_precheck/remove_exceptions=yes |
+| GET/POST `/agent/cases/{id}/materials` | 本人列表；multipart file及consent=true，10MB/份、最多10份有效材料 |
+| POST `/agent/materials/{id}/process` | 默认明确不可用；可信教学模式执行真实本地提取/OCR |
+| PUT `/agent/materials/{id}/fields` | expected_version、kind、fields；来源为本人主动转录 |
+| DELETE `/agent/materials/{id}` | 撤回授权并删除原件，使旧集合失效 |
+| GET `/agent/materials/{id}/download` | 本人当前授权原件，校验哈希 |
+| POST `/agent/cases/{id}/material-sets` | material_ids；冻结当前材料版本 |
+| POST `/agent/cases/{id}/precheck` | material_set_id、rule_snapshot_id、expected_case_version；计算完成后再次核对规则及材料集合 |
+| GET `/agent/prechecks/{id}` | 本人有效教学预检记录，重新核对材料和规则 |
+| GET `/staff/api/tickets/{ticket}/materials/{material}` | 工单处理关系、material.view权限、明确共享及当前授权均成立时下载 |
+
+预检不是真伪、资格或审批判断。更改材料、撤回授权或切换规则后旧结果不能作为当前结论。模型不接收材料正文、草稿全文或提交确认；公开知识与私有材料分开保存。工单详情只共享选中材料及预检历史摘要，热线保持摘要边界。
+
+## 留存及运行控制
+
+`POST /staff/api/retention/dispose`要求工作人员JWT、独立CSRF及同一条全事项supervisor授权；请求为signed_policy、approved（ID到SHA256）、dry_run（默认true）、quiesced（默认false）。实际处置仅限获批独立评价/诊断记录，须外部签名配置和明确静默写入，不清理业务库、材料或备份。
+
+同机SQLite共享限流与模型预算覆盖全局、操作者、服务及操作者与服务组合；未知usage保守保留预算，超限返回MODEL_QUOTA_EXCEEDED。本地OCR另有处理配额。配置、凭证、HTTPS域名、备份及恢复契约见[运维说明](运维部署与恢复.md)。

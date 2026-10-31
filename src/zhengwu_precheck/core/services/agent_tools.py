@@ -106,4 +106,5 @@ async def dispatch(name, arguments, principal, *, handlers=None, timeout=10):
         return _result('blocked', error.code, error.message, error.retryable)
     except Exception:
         return _result('temporarily_unavailable', 'TOOL_FAILED', '工具暂时不可用', True)
-    return {'status': 'ok', 'data': data, 'error': None, 'next_actions': [], 'trace_id': str(uuid4())}
+    status = data.pop('_tool_status', 'ok') if isinstance(data, dict) else 'ok'
+    return {'status': status, 'data': data, 'error': None, 'next_actions': [], 'trace_id': str(uuid4())}

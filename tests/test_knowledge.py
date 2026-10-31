@@ -80,6 +80,19 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(after["managed"])
         self.assertEqual(after["version_ids"], [])
 
+    async def test_background_embeddings_keep_upload_operator_and_restore_context(self):
+        from zhengwu_precheck.core.services.model_budget import model_principal
+        seen=[]
+        original=self.worker.qa.embed
+        async def embed(values):
+            seen.append(model_principal.get())
+            return await original(values)
+        self.worker.qa.embed=embed
+        before=model_principal.get()
+        await self.processed()
+        self.assertEqual(seen,['staff:owner'])
+        self.assertEqual(model_principal.get(),before)
+
     async def test_scanned_pdf_requires_manual_text_and_new_version(self):
         from io import BytesIO
         from pypdf import PdfWriter

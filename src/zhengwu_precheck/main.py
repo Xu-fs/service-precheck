@@ -16,6 +16,15 @@ from starlette.exceptions import HTTPException
 
 from zhengwu_precheck.api.dependencies import RateLimiter
 from zhengwu_precheck.api.routes import chat, sessions, staff, knowledge, prompts, audits, tickets
+from zhengwu_precheck.api.routes import agent
+from zhengwu_precheck.api.routes import materials
+from zhengwu_precheck.api.routes import operations
+from zhengwu_precheck.infrastructure.request_limiter import SharedRateLimiter
+from zhengwu_precheck.infrastructure.agent_repository import AgentRepository
+from zhengwu_precheck.core.services.agent import AgentService
+from zhengwu_precheck.infrastructure.material_repository import MaterialRepository
+from zhengwu_precheck.infrastructure.quota_repository import QuotaRepository, QuotaLimits
+from zhengwu_precheck.core.services.model_budget import ModelBudget
 from zhengwu_precheck.core.errors import AppError
 from zhengwu_precheck.core.services.guide_qa import GuideQA
 from zhengwu_precheck.infrastructure.database import ChatRepository
@@ -44,6 +53,13 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
     knowledge_repo = KnowledgeRepository(repo.engine, settings.runtime_dir)
     knowledge_service = KnowledgeService(knowledge_repo, service, settings)
     ticket_repo = TicketRepository(repo.engine)
+    agent_repo = AgentRepository(repo.engine)
+    material_repo = MaterialRepository(repo.engine,settings.runtime_dir/'private-materials',
+        processor={'trusted_teaching':True} if settings.trusted_teaching_materials else None)
+    quota_repo = QuotaRepository(repo.engine)
+    shared_limiter = SharedRateLimiter(repo.engine)
+    service.budget = ModelBudget(quota_repo,QuotaLimits(settings.model_daily_requests,settings.model_daily_tokens,
+        settings.model_concurrent,lease_seconds=max(180,int(settings.request_timeout)+30)))
     service.knowledge_repo = knowledge_repo
     service.knowledge_service = knowledge_service
 
@@ -55,6 +71,10 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
         await knowledge_repo.initialize()
         await audit_repo.initialize()
         await ticket_repo.initialize()
+        await agent_repo.initialize()
+        await material_repo.initialize()
+        await quota_repo.initialize()
+        await shared_limiter.initialize()
         import asyncio
         worker = asyncio.create_task(knowledge_service.run())
         ticket_worker = asyncio.create_task(ticket_repo.run())
@@ -73,6 +93,12 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
     app.state.prompt_repo, app.state.audit_repo = prompt_repo, audit_repo
     app.state.knowledge_repo, app.state.knowledge_service = knowledge_repo, knowledge_service
     app.state.ticket_repo = ticket_repo
+    app.state.agent_repo = agent_repo
+    app.state.agent_service = AgentService(app)
+    ticket_repo.validate_current_precheck = app.state.agent_service.validate_precheck
+    app.state.material_repo = material_repo
+    app.state.quota_repo = quota_repo
+    app.state.shared_limiter = shared_limiter
     app.add_middleware(BodyLimitMiddleware)
     app.state.limiter = RateLimiter()
     hosts = os.getenv("ZHENGWU_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1],testserver").split(",")
@@ -121,6 +147,12 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
 
     templates = Jinja2Templates(directory=str(PACKAGE / "templates"))
     app.state.templates = templates
+    @app.get('/health')
+    async def health():
+        from sqlalchemy import text
+        async with repo.engine.connect() as connection:
+            await connection.execute(text('SELECT 1'))
+        return {'status':'ok','scope':'local_application','teaching_only':True}
     @app.get("/")
     async def home(request: Request):
         token = request.cookies.get("zw_anon", "")
@@ -141,6 +173,9 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
     app.include_router(prompts.router)
     app.include_router(audits.router)
     app.include_router(tickets.router)
+    app.include_router(agent.router)
+    app.include_router(materials.router)
+    app.include_router(operations.router)
     app.include_router(staff.router)
     return app
 
