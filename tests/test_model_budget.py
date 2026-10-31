@@ -22,7 +22,7 @@ class ModelBudgetTests(unittest.IsolatedAsyncioTestCase):
             try:
                 async with httpx.AsyncClient(transport=httpx.MockTransport(
                     lambda request: httpx.Response(200,json={'usage':{'total_tokens':2}}))) as client:
-                    await budget.send(client,'http://localhost/v1/embeddings',{'input':['教学资料']},{})
+                    await budget.send(client,'http://localhost/v1/embeddings',{'input':['示例资料']},{})
                     await budget.send(client,'http://localhost/v1/chat/completions',{'messages':[]},{})
                 self.assertEqual((await quota.usage('model-service:embedding'))['requests'],1)
                 self.assertEqual((await quota.usage('model-service:llm'))['requests'],1)
@@ -49,7 +49,7 @@ class ModelBudgetTests(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn('13812345678',seen[0])
                 self.assertIn('1024',seen[0])
                 with self.assertRaises(AppError) as error:
-                    await budget.send(client,'http://localhost/v1/embeddings',{'input':['教学资料']},{})
+                    await budget.send(client,'http://localhost/v1/embeddings',{'input':['示例资料']},{})
                 self.assertEqual(error.exception.code,'MODEL_QUOTA_EXCEEDED')
                 self.assertEqual(len(seen),1)
             await repo.close()

@@ -33,7 +33,7 @@ def csrf(request: Request):
 
 
 class RateLimiter:
-    """单进程教学部署限流；多进程部署须替换共享限流存储。"""
+    """单进程示例部署限流；多进程部署须替换共享限流存储。"""
     def __init__(self):
         self.entries = {}
 

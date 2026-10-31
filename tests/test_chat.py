@@ -48,9 +48,9 @@ class FakeQA:
         self.calls.append((question, history, matter_id))
         if self.fail:
             raise TimeoutError()
-        return {"outcome": "answered", "text": "教学申请表包含姓名、联系电话和居住地址三个示例字段。", "citations": [{
-            "citation_id": "c1", "filename": "居住证申领_教学指南.md", "matter": "居住证申领",
-            "rule_version": "DEMO-2026-01", "chunk_id": "C002", "quote": "教学申请表包含姓名、联系电话和居住地址三个示例字段。", "is_teaching": True,
+        return {"outcome": "answered", "text": "示例申请表包含姓名、联系电话和居住地址三个示例字段。", "citations": [{
+            "citation_id": "c1", "filename": "居住证申领_示例指南.md", "matter": "居住证申领",
+            "rule_version": "DEMO-2026-02", "chunk_id": "C002", "quote": "示例申请表包含姓名、联系电话和居住地址三个示例字段。", "is_teaching": True,
         }]}
     async def close(self):
         pass
@@ -98,7 +98,7 @@ class ChatTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_anonymous_confirmation_answer_and_persisted_citations(self):
         sid = await self.confirmed()
-        response = await self.post("教学申请表有哪些字段？", sid)
+        response = await self.post("示例申请表有哪些字段？", sid)
         self.assertEqual(response.headers["content-type"].split(";")[0], "text/event-stream")
         items = events(response)
         self.assertEqual(items[0][0], "session")
@@ -108,7 +108,7 @@ class ChatTests(unittest.IsolatedAsyncioTestCase):
         restored = (await self.client.get(f"/sessions/{sid}/messages")).json()["items"]
         answer = next(item for item in reversed(restored) if item["outcome"] == "answered")
         self.assertIn("联系电话", answer["content"])
-        self.assertEqual(answer["citations"][0]["rule_version"], "DEMO-2026-01")
+        self.assertEqual(answer["citations"][0]["rule_version"], "DEMO-2026-02")
 
     async def test_anonymous_sessions_are_isolated_and_cookie_is_http_only(self):
         sid = await self.confirmed()
@@ -252,8 +252,8 @@ class ChatTests(unittest.IsolatedAsyncioTestCase):
                 return httpx.Response(200, json={"data": [{"index": i, "embedding": [1.0, .1]} for i in range(len(body["input"]))]})
             captured.append(body["messages"])
             context = json.loads(body["messages"][1]["content"])
-            source = next(item for item in context["teaching_sources"] if "教学申请表包含姓名、联系电话" in item["text"])
-            content = json.dumps({"supported": True, "citations": [{"chunk_id": source["chunk_id"], "quote": "教学申请表包含姓名、联系电话和居住地址三个示例字段。"}]}, ensure_ascii=False)
+            source = next(item for item in context["teaching_sources"] if "示例申请表包含姓名、联系电话" in item["text"])
+            content = json.dumps({"supported": True, "citations": [{"chunk_id": source["chunk_id"], "quote": "示例申请表包含姓名、联系电话和居住地址三个示例字段。"}]}, ensure_ascii=False)
             return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
         qa = GuideQA(self.app.state.settings)
         await qa.client.aclose()
@@ -263,14 +263,14 @@ class ChatTests(unittest.IsolatedAsyncioTestCase):
         history = [{"role": role, "content": "历史" * 1100} for _ in range(6) for role in ("user", "assistant")]
         try:
             with patch.dict(os.environ, env):
-                answer = await qa.answer("教学申请表有哪些字段？", history, "residence-permit")
+                answer = await qa.answer("示例申请表有哪些字段？", history, "residence-permit")
             self.assertEqual(answer["outcome"], "answered")
-            self.assertEqual(answer["citations"][0]["filename"], "居住证申领_教学指南.md")
+            self.assertEqual(answer["citations"][0]["filename"], "居住证申领_示例指南.md")
             prompt = captured[0]
             self.assertLessEqual(sum(len(item["content"]) for item in prompt), 12000)
             context = json.loads(prompt[1]["content"])
             self.assertLessEqual(sum(len(item["content"]) for item in context["history"]), 6000)
-            self.assertEqual(context["question"], "教学申请表有哪些字段？")
+            self.assertEqual(context["question"], "示例申请表有哪些字段？")
         finally:
             await qa.close()
 

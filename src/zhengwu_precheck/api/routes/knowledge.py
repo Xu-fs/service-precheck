@@ -11,7 +11,7 @@ from sqlalchemy import text
 
 from zhengwu_precheck.api.staff_dependencies import staff_identity, staff_csrf
 from zhengwu_precheck.core.errors import AppError
-from zhengwu_precheck.core.staff_permissions import MODULES, MATTER_NAMES, allows, public_identity
+from zhengwu_precheck.core.staff_permissions import MATTER_NAMES, allows, workspace_context
 from zhengwu_precheck.infrastructure.knowledge_repository import KINDS, SCENARIOS
 from zhengwu_precheck.utils.security import digest
 
@@ -49,7 +49,7 @@ def teaching(data):
         return value
     if isinstance(value, str) and value in {"true", "on", "1", "false", "0", ""}:
         return value in {"true", "on", "1"}
-    raise AppError(422, "INVALID_REQUEST", "教学资料确认字段格式无效")
+    raise AppError(422, "INVALID_REQUEST", "示例资料确认字段格式无效")
 
 
 def integer(value, required=False):
@@ -84,7 +84,7 @@ def timestamp(value, default=None):
 
 
 def context(request, identity, name, **extra):
-    return {"identity": public_identity(identity), "modules": [m for m in MODULES if allows(identity["grants"], m["permission"])],
+    return {**workspace_context(identity),
             "module_name": name, "csrf_token": digest("staff-csrf:" + request.cookies.get("zw_staff_csrf", "")), "status_names": STATUS_NAMES,
             "matters": {m: n for m, n in MATTER_NAMES.items() if m != "*" and allows(identity["grants"], "knowledge.read", m)},
             "kinds": KINDS, "scenarios": SCENARIOS, "allows": lambda permission, matter=None: allows(identity["grants"], permission, matter), **extra}
@@ -167,9 +167,9 @@ async def create_rule(request: Request):
     request.app.state.knowledge_repo.authorize(identity, "rule.edit", matter)
     content, kind = string(data, "content"), string(data, "kind")
     if not 1 <= len(content.strip()) <= 50000 or kind not in {"rule", "checklist"}:
-        raise AppError(422, "INVALID_KNOWLEDGE", "请填写教学规则或清单正文，最多50000字符")
+        raise AppError(422, "INVALID_KNOWLEDGE", "请填写示例规则或清单正文，最多50000字符")
     uploaded = await request.app.state.knowledge_repo.upload(identity, title=string(data, "title"), matter_id=matter,
-        scenario_id=string(data, "scenario_id"), kind=kind, filename="教学规则.md", source_uri=string(data, "source_uri"),
+        scenario_id=string(data, "scenario_id"), kind=kind, filename="示例规则.md", source_uri=string(data, "source_uri"),
         rule_version=string(data, "rule_version"), raw=content.encode("utf-8"), is_teaching=teaching(data))
     request.app.state.knowledge_service.wakeup.set()
     return result(request, uploaded, "/staff/knowledge/versions/" + uploaded["version_id"])

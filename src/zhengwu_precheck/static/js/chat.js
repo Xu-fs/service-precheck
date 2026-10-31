@@ -1,5 +1,6 @@
 /* 只保存会话ID，身份凭证由HttpOnly Cookie管理；所有模型/用户文本用textContent。 */
 import { readSSE } from './sse.js';
+import { createNotifications } from './notifications.js';
 
 const $ = id => document.getElementById(id);
 let csrf = document.querySelector('meta[name="csrf-token"]').content;
@@ -21,6 +22,8 @@ async function jsonRequest(path, options = {}) {
   if (!response.ok) { const error = new Error(body.error?.message || '服务暂时不可用，请稍后重试。'); error.code = body.error?.code; throw error; }
   return body;
 }
+
+const notifications = createNotifications({ request: jsonRequest, openLogin: () => $('login-dialog').showModal() });
 
 function message(role, text = '') {
   $('welcome').hidden = true;
@@ -63,6 +66,10 @@ function citations(view, items) {
 function actions(view, items) {
   const group = document.createElement('div'); group.className = 'action-list';
   for (const item of items || []) {
+    if (item.type === 'open_service_guide' && item.enabled) {
+      const link = document.createElement('a'); link.href = item.href; link.textContent = item.label;
+      group.append(link); continue;
+    }
     const button = document.createElement('button'); button.type = 'button'; button.textContent = item.label; button.disabled = !item.enabled;
     button.addEventListener('click', () => {
         if (item.type === 'create_ticket') { window.location.assign('/my/tickets'); }
@@ -91,7 +98,7 @@ function matterOptions(view, data, question) {
         const original = question || pendingQuestion;
         // “切换事项”属于界面控制意图，确认后改为询问新事项，避免重复触发选择。
         const nextQuestion = !original || /换个事项|切换事项|重新选择事项/.test(original)
-          ? `请介绍${option.name}的教学材料清单。` : original;
+          ? `请介绍${option.name}的示例材料清单。` : original;
         await sendQuestion(nextQuestion);
       } catch (error) { status(error.message); for (const child of group.children) child.disabled = false; }
     }); group.append(button);
@@ -114,7 +121,7 @@ async function restore(older = false) {
     const text = item.status === 'pending' ? '这条问题仍在处理中，请稍后刷新查看。' :
       item.status === 'failed' ? '上次回答未完成，可以重新提问。' : item.status === 'cancelled' ? '回答已停止。' : item.content;
     const view = message(item.sender_type, text); citations(view, item.citations);
-    if (item.outcome === 'insufficient_evidence') actions(view, item.result.actions);
+    if (item.result?.actions?.length) actions(view, item.result.actions);
     if (!older && i === data.items.length - 1 && item.outcome === 'needs_matter_confirmation') matterOptions(view, item.result, lastQuestion);
   }
   if (older) { $('messages').append(...previous); $('scroll-area').scrollTop = $('scroll-area').scrollHeight - savedTop; }
@@ -146,6 +153,7 @@ async function sendQuestion(question) {
       if (event === 'status') progress.textContent = data.text;
       if (event === 'answer_delta') { progress.hidden = true; typeText(view, data.text); }
       if (event === 'citations') citations(view, data.items);
+      if (event === 'actions') actions(view, data.items);
       if (event === 'matter_required') { progress.hidden = true; $('matter-label').textContent = '尚未确认事项'; view.content.textContent = data.text; matterOptions(view, data, question); }
       if (event === 'fallback') { progress.hidden = true; view.content.textContent = data.text; actions(view, data.actions); }
       if (event === 'error') { failed = true; progress.hidden = true; view.content.textContent = data.message; view.wrapper.classList.add('error'); }
@@ -167,11 +175,13 @@ async function sendQuestion(question) {
 }
 
 async function initialize() {
+  notifications.setIdentity(false);
   try {
     const data = await jsonRequest('/bootstrap'); csrf = data.csrf_token;
     identityKey = data.identity === 'user' ? `user:${data.username}` : 'anonymous';
     $('identity').textContent = data.username ? `已登录：${data.username}` : '公开咨询无需登录';
     $('login-open').hidden = data.identity === 'user'; $('logout').hidden = data.identity !== 'user';
+    notifications.setIdentity(data.identity === 'user');
     try { session = localStorage.getItem(storageKey()); } catch {}
     if (session) {
       try { await restore(); } catch (error) { storeSession(null); status(error.message); }

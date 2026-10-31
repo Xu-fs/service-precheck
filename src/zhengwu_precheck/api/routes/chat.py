@@ -12,6 +12,7 @@ from zhengwu_precheck.api.dependencies import csrf, principal
 from zhengwu_precheck.api.schemas import ChatInput
 from zhengwu_precheck.core.errors import AppError
 from zhengwu_precheck.core.services.chat import MATTERS, fallback, needs_confirmation
+from zhengwu_precheck.core.services.public_services import public_service_reply
 from zhengwu_precheck.utils.security import digest
 from zhengwu_precheck.utils.sse import encode_event
 
@@ -44,16 +45,17 @@ async def chat(body: ChatInput, request: Request, who=Depends(principal)):
             raise AppError(409, "REQUEST_IN_PROGRESS" if existing["status"] == "pending" else "REQUEST_RETRY_REQUIRED",
                            "请求处理中，请查询消息状态" if existing["status"] == "pending" else "上次请求未完成，请使用新的请求标识重试", True)
     else:
-        confirm = needs_confirmation(conversation, body.question)
+        guide_result = public_service_reply(body.question)
+        confirm = guide_result is None and needs_confirmation(conversation, body.question)
         knowledge_repo = request.app.state.knowledge_repo
-        if not confirm:
+        if not confirm and guide_result is None:
             # 流前仅检查当前就绪性；真正依据仍在接纳写事务中重新读取并冻结。
             async with repo.engine.connect() as conn:
                 preview = await knowledge_repo.capture(conn, conversation["matter_id"], conversation["scenario_id"])
             if preview["managed"] or conversation["matter_id"] == "residence-permit":
                 qa.ensure_ready(preview)
         turn = await repo.reserve(sid, body.question, key, who, expected_conversation=conversation,
-                                  context_factory=None if confirm else knowledge_repo.capture)
+                                  context_factory=None if confirm or guide_result is not None else knowledge_repo.capture)
         snapshot = turn.pop("_snapshot", None)  # 绝不经**turn把内部模板正文送往浏览器。
 
     async def stream():
@@ -72,9 +74,11 @@ async def chat(body: ChatInput, request: Request, who=Depends(principal)):
                     from zhengwu_precheck.core.services.model_budget import model_principal
                     model_principal.set(who['key'])
                     try:
-                        if confirm:
+                        if guide_result is not None:
+                            result = guide_result
+                        elif confirm:
                             token = await repo.set_confirmation(turn)
-                            result = {"outcome": "needs_matter_confirmation", "text": "请先确认你要咨询的事项和教学情形。",
+                            result = {"outcome": "needs_matter_confirmation", "text": "请先确认你要咨询的事项和申请情形。",
                                       "options": MATTERS, "confirmation_token": token, "citations": []}
                         elif conversation["matter_id"] != "residence-permit" and not snapshot["managed"]:
                             result = fallback(settings.human_service)
@@ -122,6 +126,8 @@ async def chat(body: ChatInput, request: Request, who=Depends(principal)):
                     yield emit("answer_delta", {"text": result["text"][offset:offset + 18]})
                     await asyncio.sleep(0)
                 yield emit("citations", {"items": result.get("citations", [])})
+                if result.get('actions'):
+                    yield emit('actions', {'items': result['actions']})
             yield emit("done", {"outcome": result["outcome"], "persisted": True})
         except asyncio.CancelledError:
             raise

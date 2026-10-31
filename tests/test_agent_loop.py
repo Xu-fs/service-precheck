@@ -22,7 +22,7 @@ class AgentLoopTests(unittest.IsolatedAsyncioTestCase):
         async def handler(args, principal):
             self.assertEqual(principal['user_id'], 'server')
             return {'status':'queued'}
-        result = await run_tool_loop('查询本人教学记录', {'user_id':'server'}, planner,
+        result = await run_tool_loop('查询本人示例记录', {'user_id':'server'}, planner,
                                      {'get_ticket_status':handler}, max_calls=2)
         self.assertEqual(result['status'], 'temporarily_unavailable')
         self.assertEqual(len(result['trace']), 2)
@@ -31,6 +31,6 @@ class AgentLoopTests(unittest.IsolatedAsyncioTestCase):
         from zhengwu_precheck.core.services.agent import run_tool_loop
         async def planner(messages, schemas):
             return {'text':'你的证件真实有效，一定获批，工单创建成功'}
-        result = await run_tool_loop('问教学材料', {'user_id':'u'}, planner, {})
+        result = await run_tool_loop('问示例材料', {'user_id':'u'}, planner, {})
         self.assertNotIn('一定获批', result['text'])
         self.assertEqual(result['trace'], [])

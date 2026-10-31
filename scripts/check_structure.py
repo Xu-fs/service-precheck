@@ -3,7 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ROOT_FILES = {"README.md", "LICENSE", ".gitignore", "CHANGELOG.md",
-              "CONTRIBUTING.md", "requirements.txt", "AGENTS.md"}
+              "CONTRIBUTING.md", "requirements.txt", "AGENTS.md", "启动网页.bat"}
 ROOT_DIRS = {"src", "docs", "tests", "examples", "scripts", "config", "data", ".github"}
 LOCAL_DIRS = {".git", ".venv", "venv", ".workbuddy-ai", "__pycache__", ".pytest_cache",
               ".mypy_cache", ".ruff_cache", ".idea", ".vscode", "htmlcov", "build", "dist"}
@@ -12,7 +12,7 @@ REQUIRED = ROOT_FILES | {
     "src/zhengwu_precheck/__init__.py", "src/zhengwu_precheck/main.py",
     "src/zhengwu_precheck/core/__init__.py", "src/zhengwu_precheck/utils/__init__.py",
     "docs/设计框架.md", "docs/api.md", "tests/test_core.py", "examples/demo.py",
-    "scripts/build.sh", "scripts/deploy.sh", "scripts/check_structure.py",
+    "scripts/build.sh", "scripts/deploy.sh", "scripts/check_structure.py", "scripts/start_web.py",
     "config/default.yaml", "data/README.md", ".github/workflows/ci.yml",
     ".github/ISSUE_TEMPLATE/bug_report.md", ".github/PULL_REQUEST_TEMPLATE.md",
 }

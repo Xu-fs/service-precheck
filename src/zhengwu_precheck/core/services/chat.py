@@ -2,8 +2,8 @@
 from zhengwu_precheck.core.guide_rag import NO_EVIDENCE
 
 MATTERS = [
-    {"matter_id": "residence-permit", "name": "居住证申领", "scenario_id": "rental-demo", "scenario_name": "租赁居住（教学情形）"},
-    {"matter_id": "sole-trader-registration", "name": "个体工商户设立登记", "scenario_id": "standard-demo", "scenario_name": "普通设立（教学情形）"},
+    {"matter_id": "residence-permit", "name": "居住证申领", "scenario_id": "rental-demo", "scenario_name": "租赁居住（示例）"},
+    {"matter_id": "sole-trader-registration", "name": "个体工商户设立登记", "scenario_id": "standard-demo", "scenario_name": "普通设立（示例）"},
 ]
 
 

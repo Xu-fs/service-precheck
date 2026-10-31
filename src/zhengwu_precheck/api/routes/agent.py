@@ -96,7 +96,7 @@ async def rules(case_id:str, request:Request, matter_id:str, scenario_id:str,who
     return {'snapshot_id':sid,'matter_id':matter_id,'scenario_id':scenario_id,'conflict':snap['conflict'],
             'version_ids':snap['version_ids'],'local_signature':snap.get('local_signature'),
             'teaching_rule_version':snap['teaching_rule_version'],'precheck_rules_approved':snap['precheck_rules_approved'],'guides':snap['guides'],
-            'notice':'仅供教学；确认后规则变化须重新确认，不代表申请或审批。'}
+            'notice':'仅供示例；确认后规则变化须重新确认，不代表申请或审批。'}
 
 
 @router.get('/agent/cases/{case_id}')

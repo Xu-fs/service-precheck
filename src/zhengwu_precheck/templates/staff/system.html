@@ -1,0 +1,4 @@
+{% extends "staff/base.html" %}
+{% block content %}
+<section class="panel"><div class="panel-heading"><h2>后台服务状态</h2><span class="status-pill">已连接</span></div><dl class="system-status"><dt>数据库连接</dt><dd>{{ '正常' if status.database == 'connected' else '待检查' }}</dd><dt>工作人员数据结构版本</dt><dd>{{ status.staff_schema_version }}</dd></dl><p>此页展示技术状态，可刷新页面获取最新结果。</p><a class="technical-link" href="/staff/api/system/status">查看状态数据</a></section>
+{% endblock %}

@@ -17,8 +17,8 @@ import httpx
 
 # 【保留在 examples】命令行装配仅用于验证流程，不引入Web或其他业务能力。
 def main() -> int:
-    parser = argparse.ArgumentParser(description="教学指南问答：BM25＋FAISS＋模型原文引用")
-    parser.add_argument("--guide", type=Path, default=ROOT / "data" / "居住证申领_教学指南.md")
+    parser = argparse.ArgumentParser(description="示例指南问答：BM25＋FAISS＋模型原文引用")
+    parser.add_argument("--guide", type=Path, default=ROOT / "data" / "居住证申领_示例指南.md")
     parser.add_argument("--index-dir", type=Path, default=Path(tempfile.gettempdir()) / "zhengwu-guide-qa")
     parser.add_argument("--question", help="单次提问；不填则进入交互模式")
     parser.add_argument("--retrieve-only", action="store_true", help="只验证检索，仍需要嵌入API")
@@ -47,7 +47,7 @@ def main() -> int:
     try:
         chunks = load_chunks(args.guide)
         index = build_or_load_index(chunks, embedding, args.index_dir, rebuild=args.rebuild)
-        print(f"教学指南问答原型｜{len(chunks)}个片段｜索引：{args.index_dir.resolve()}")
+        print(f"示例指南问答原型｜{len(chunks)}个片段｜索引：{args.index_dir.resolve()}")
         print("仅验证指南问答；不提供材料识别、预检、人工工单或正式审批。")
         while True:
             if args.question is not None:

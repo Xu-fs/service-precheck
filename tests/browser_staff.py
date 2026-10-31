@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+from test_staff_workspaces import EXPECTED
 from playwright.sync_api import sync_playwright, expect
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,7 +15,7 @@ def login(page, role):
     page.get_by_label("工作人员账号").fill("staff-" + role)
     page.get_by_label("密码", exact=True).fill("browser-staff-test-password")
     page.get_by_role("button", name="登录后台", exact=True).click()
-    expect(page.get_by_role("heading", name="我的工作台", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name=EXPECTED[role][0], exact=True)).to_be_visible()
 
 
 with sync_playwright() as p:
@@ -32,7 +33,7 @@ with sync_playwright() as p:
     assert context.request.get(URL + "/staff/reviews").status == 403
     page.get_by_role("navigation").get_by_role("link", name="办事知识库").click()
     expect(page.get_by_text("暂无授权资料。", exact=False)).to_be_visible()
-    assert page.get_by_role("link", name="上传教学资料").count() == 0
+    assert page.get_by_role("link", name="上传资料").count() == 0
     access = next(cookie for cookie in context.cookies() if cookie["name"] == "zw_staff_access")
     assert access["httpOnly"] and access["value"].count(".") == 2
     assert context.request.get(URL + "/bootstrap").json()["identity"] == "anonymous"
@@ -49,12 +50,12 @@ with sync_playwright() as p:
     page.screenshot(path=str(OUTPUT / "staff-workspace.png"), full_page=True)
     page.get_by_role("navigation").get_by_role("link", name="提示词模板").click()
     expect(page.get_by_role("button", name="保存并生效新版本", exact=True)).to_be_visible()
-    page.get_by_label("系统提示词（最多2000字）").fill("浏览器教学模板：根据引用回答，不提供审批结论。")
-    page.get_by_label("修改说明", exact=True).fill("浏览器教学版本更新")
+    page.get_by_label("系统提示词（最多2000字）").fill("浏览器示例模板：根据引用回答，不提供审批结论。")
+    page.get_by_label("修改说明", exact=True).fill("浏览器示例版本更新")
     page.get_by_role("button", name="保存并生效新版本", exact=True).click()
     expect(page.get_by_role("heading", name="居住证申领 · 当前生效版本 v2", exact=True)).to_be_visible()
     page.locator("details").last.locator("summary").click()
-    page.get_by_label("恢复说明", exact=True).fill("浏览器教学恢复初始内容")
+    page.get_by_label("恢复说明", exact=True).fill("浏览器示例恢复初始内容")
     page.get_by_role("button", name="恢复此内容为新版本", exact=True).click()
     expect(page.get_by_role("heading", name="居住证申领 · 当前生效版本 v3", exact=True)).to_be_visible()
     page.get_by_role("navigation").get_by_role("link", name="审核发布").click()

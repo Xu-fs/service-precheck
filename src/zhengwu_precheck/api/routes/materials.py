@@ -1,4 +1,4 @@
-"""私有教学材料入口；读取前验证登录、归属及逐份授权。"""
+"""私有示例材料入口；读取前验证登录、归属及逐份授权。"""
 from fastapi import APIRouter,Request,Depends
 from fastapi.responses import Response
 from pydantic import BaseModel,ConfigDict,Field
@@ -33,7 +33,7 @@ async def upload(case_id:str,request:Request):
     form=await request.form(max_files=1,max_fields=2,max_part_size=11*1024*1024)
     file=form.get('file')
     if not file or not hasattr(file,'read'):
-        raise AppError(422,'INVALID_MATERIAL','请选择教学图片或PDF')
+        raise AppError(422,'INVALID_MATERIAL','请选择示例图片或PDF')
     try:
         content=await file.read(10*1024*1024+1)
         return await request.app.state.material_repo.store(who['user_id'],case_id,file.filename,content,form.get('consent')=='true')
@@ -69,7 +69,7 @@ async def process(material_id:str,request:Request):
     try:
         reservation=await request.app.state.quota_repo.reserve('local-ocr',0,QuotaLimits(1000,1,1,lease_seconds=90))
     except QuotaExceeded:
-        raise AppError(429,'OCR_BUSY','材料处理繁忙，请稍后重试或先转录教学字段。',True) from None
+        raise AppError(429,'OCR_BUSY','材料处理繁忙，请稍后重试或先转录示例字段。',True) from None
     try:
         return await request.app.state.material_repo.process(who['user_id'],material_id)
     finally:

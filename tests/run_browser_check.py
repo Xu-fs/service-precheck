@@ -15,16 +15,18 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description="本机真实浏览器回归，模型使用测试替身")
-parser.add_argument("--suite", choices=["citizen", "staff", "content", "tickets", "assistant", "all"], default="all")
+parser.add_argument("--suite", choices=["citizen", "staff", "workspaces", "content", "tickets", "cases", "assistant", "notifications", "all"], default="all")
 args = parser.parse_args()
 temporary = ROOT / ".venv" / "tmp"
 temporary.mkdir(parents=True, exist_ok=True)
 output = ROOT / ".venv" / "browser-results"
 output.mkdir(parents=True, exist_ok=True)
-suites = {"citizen": ["browser_chat.py"], "staff": ["browser_staff.py"], "content": ["browser_content.py"],
+suites = {"citizen": ["browser_chat.py"], "staff": ["browser_staff.py"], "workspaces": ["browser_staff_workspaces.py"], "content": ["browser_content.py"],
           "tickets": ["browser_tickets.py"],
+          "cases": ["browser_demo_cases.py"],
           "assistant": ["browser_assistant.py"],
-          "all": ["browser_chat.py", "browser_staff.py", "browser_tickets.py", "browser_assistant.py", "browser_content.py"]}
+          "notifications": ["browser_notifications.py"],
+          "all": ["browser_chat.py", "browser_notifications.py", "browser_staff.py", "browser_staff_workspaces.py", "browser_tickets.py", "browser_demo_cases.py", "browser_assistant.py", "browser_content.py"]}
 
 # 每套使用独立服务和运行库，不关闭业务限流，也不共享提示词/知识状态；content保持最后运行。
 for script in suites[args.suite]:

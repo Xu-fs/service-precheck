@@ -45,10 +45,10 @@ class MaterialTests(MaterialFixture, unittest.IsolatedAsyncioTestCase):
 
     async def test_manual_fields_have_explicit_source_and_immutable_set(self):
         item = await self.upload()
-        corrected = await self.repo.correct_fields('u', item['id'], 1, 'identity', {'name':'教学甲','address':'虚构路1号','date':'2026-10-01'})
+        corrected = await self.repo.correct_fields('u', item['id'], 1, 'identity', {'name':'示例甲','address':'虚构路1号','date':'2026-10-01'})
         self.assertEqual(corrected['extraction']['source'], 'user_transcription')
         material_set = await self.repo.create_set('u', 'case', [item['id']])
-        await self.repo.correct_fields('u', item['id'], 2, 'identity', {'name':'教学乙'})
+        await self.repo.correct_fields('u', item['id'], 2, 'identity', {'name':'示例乙'})
         with self.assertRaises(AppError) as e:
             await self.repo.get_set('u', material_set['id'])
         self.assertEqual(e.exception.code, 'MATERIAL_SET_STALE')
@@ -75,7 +75,7 @@ class PrecheckTests(unittest.TestCase):
         from zhengwu_precheck.core.services.materials import evaluate
         return evaluate(matter,scenario,version,items)
 
-    def item(self,kind,name='教学甲',address='虚构路1号',**fields):
+    def item(self,kind,name='示例甲',address='虚构路1号',**fields):
         return {'id':kind,'version':2,'sha256':'fictional','extraction':{'source':'user_transcription','confirmed':True,'kind':kind,'fields':{'name':name,'address':address,'date':'2026-10-01',**fields}}}
 
     def test_two_matters_have_independent_complete_and_missing_results(self):
@@ -87,7 +87,7 @@ class PrecheckTests(unittest.TestCase):
         self.assertEqual(self.check(residence,'sole-trader-registration','standard-demo')['result'],'疑似缺项')
 
     def test_conflicts_and_unconfirmed_ocr_require_verification(self):
-        items=[self.item('identity'),self.item('residence',name='教学乙'),self.item('application')]
+        items=[self.item('identity'),self.item('residence',name='示例乙'),self.item('application')]
         result=self.check(items)
         self.assertEqual(result['result'],'信息待核实')
         self.assertTrue(any(e['code']=='FIELD_MISMATCH' for e in result['evidence']))
@@ -141,7 +141,7 @@ class RealOCRTests(unittest.IsolatedAsyncioTestCase):
 class MaterialIntegrationTests(MaterialFixture, unittest.IsolatedAsyncioTestCase):
     async def test_precheck_record_keeps_evidence_and_rechecks_set_authorization(self):
         item=await self.upload()
-        await self.repo.correct_fields('u',item['id'],1,'identity',{'name':'教学甲','address':'虚构路1号','date':'2026-10-01'})
+        await self.repo.correct_fields('u',item['id'],1,'identity',{'name':'示例甲','address':'虚构路1号','date':'2026-10-01'})
         mset=await self.repo.create_set('u','case',[item['id']])
         record=await self.repo.precheck('u','case','residence-permit','rental-demo','teaching-2026-10-v1',mset['id'],1)
         self.assertEqual(record['result'],'疑似缺项')
@@ -156,11 +156,11 @@ class MaterialIntegrationTests(MaterialFixture, unittest.IsolatedAsyncioTestCase
 
     async def test_concurrent_correction_version_cannot_overwrite_newer_fields(self):
         item=await self.upload()
-        await self.repo.correct_fields('u',item['id'],1,'identity',{'name':'教学甲'})
+        await self.repo.correct_fields('u',item['id'],1,'identity',{'name':'示例甲'})
         with self.assertRaises(AppError) as e:
             await self.repo.correct_fields('u',item['id'],1,'identity',{'name':'旧值'})
         self.assertEqual(e.exception.code,'MATERIAL_CHANGED')
-        self.assertEqual((await self.repo.get('u',item['id']))['extraction']['fields']['name'],'教学甲')
+        self.assertEqual((await self.repo.get('u',item['id']))['extraction']['fields']['name'],'示例甲')
 
     async def test_upload_count_limit_applies_to_live_authorized_materials(self):
         first=None

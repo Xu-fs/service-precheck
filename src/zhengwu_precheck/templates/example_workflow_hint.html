@@ -1,0 +1,9 @@
+{% if workflow_example and example_hint %}
+<section class="panel" aria-label="案例处理提示（示例）">
+  <h3>案例处理提示（示例）</h3>
+  <p>办事人发起 → 窗口初审 → 办事人补充 → 业务复核 → 主任审核 → 办事人确认结案</p>
+  <p><strong>{{ example_hint.label }}</strong>{% if example_hint.action != 'done' %} · 操作账号：<code>{{ example_hint.account }}</code>{% endif %}</p>
+  <p>{{ example_hint.text }}</p>
+  {% if example_hint.action != 'done' %}<p>办事人使用<a href="/">个人登录</a>；工作人员使用<a href="/staff/login">后台登录</a>。本地预设密码为 123456。</p>{% endif %}
+</section>
+{% endif %}

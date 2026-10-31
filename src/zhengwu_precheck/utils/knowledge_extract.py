@@ -1,4 +1,4 @@
-"""受限教学知识提取子进程入口；不联网、不做OCR，不是操作系统安全沙箱。"""
+"""受限示例知识提取子进程入口；不联网、不做OCR，不是操作系统安全沙箱。"""
 import json
 import logging
 from pathlib import Path
@@ -26,11 +26,11 @@ def extract_pages(path, filename):
                 resources = resources.get_object()
                 xobjects = resources.get("/XObject")
                 if xobjects is not None:
-                    # 首期只接受简单教学PDF；Form可能吞掉解析异常后返回部分正文。
+                    # 首期只接受简单示例PDF；Form可能吞掉解析异常后返回部分正文。
                     # 不解析Form内容，也不缓存/递归展开嵌套Form，要求人工转换为简单PDF或补文本。
                     for value in xobjects.get_object().values():
                         if value.get_object().get("/Subtype") == "/Form":
-                            raise ValueError("教学PDF包含不支持的Form对象，请转换或人工补充")
+                            raise ValueError("示例PDF包含不支持的Form对象，请转换或人工补充")
             stream = page.get_contents()
             # ContentStream可能尚未解析operations而为假值，不能使用if stream。
             if stream is not None and len(stream.get_data()) > 2 * 1024 * 1024:
@@ -47,7 +47,7 @@ def extract_pages(path, filename):
 
 if __name__ == "__main__":
     try:
-        logging.disable(logging.CRITICAL)  # 畸形教学文件诊断不输出原文或内部路径。
+        logging.disable(logging.CRITICAL)  # 畸形示例文件诊断不输出原文或内部路径。
         # 路径由父进程校验为私有运行目录中的上传文件，文件名只用来判断类型。
         path, filename = Path(sys.argv[1]), sys.argv[2]
         if path.stat().st_size > 20 * 1024 * 1024:

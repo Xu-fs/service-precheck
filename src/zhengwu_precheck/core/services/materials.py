@@ -15,7 +15,7 @@ def evaluate(matter_id, scenario_id, rule_snapshot_id, materials):
     rules=load_rules()
     rule=rules['matters'].get(matter_id)
     if not rule or rule['scenario_id']!=scenario_id or rule_snapshot_id!=rules['version']:
-        raise AppError(409,'RULE_SNAPSHOT_CHANGED','教学规则版本或事项情形已变化，请重新确认')
+        raise AppError(409,'RULE_SNAPSHOT_CHANGED','示例规则版本或事项情形已变化，请重新确认')
     evidence=[]; exceptions=[]; kinds=set(); field_values={}; uncertain=False; unreadable=False
     for item in materials:
         extraction=item.get('extraction',{})
@@ -57,4 +57,4 @@ def evaluate(matter_id, scenario_id, rule_snapshot_id, materials):
     if missing and not unreadable:
         evidence.extend({'code':'CHECKLIST_MISSING','kind':kind,'source':rule['source']} for kind in missing)
     result=('需人工核验' if exceptions else '无法判断' if unreadable else '信息待核实' if uncertain else '疑似缺项' if missing else '未发现清单问题')
-    return {'result':result,'matter_id':matter_id,'scenario_id':scenario_id,'rule_snapshot_id':rule_snapshot_id,'rule_snapshot':rule,'evidence':evidence,'exceptions':sorted(set(exceptions)),'scope':rules['scope'],'notice':'仅做教学清单辅助检查，未经真实性或法定资格核验；正式补正由工作人员确认'}
+    return {'result':result,'matter_id':matter_id,'scenario_id':scenario_id,'rule_snapshot_id':rule_snapshot_id,'rule_snapshot':rule,'evidence':evidence,'exceptions':sorted(set(exceptions)),'scope':rules['scope'],'notice':'仅做示例清单辅助检查，未经真实性或法定资格核验；正式补正由工作人员确认'}

@@ -30,13 +30,13 @@ async def extract_in_process(path, filename, timeout=30):
     try:
         raw, _ = await asyncio.wait_for(process.communicate(), timeout)
         if process.returncode or len(raw) > 400000:
-            raise AppError(422, "DOCUMENT_PROCESSING_FAILED", "教学文件无法安全提取，请拆分或人工补充")
+            raise AppError(422, "DOCUMENT_PROCESSING_FAILED", "示例文件无法安全提取，请拆分或人工补充")
         pages = json.loads(raw)
         if not isinstance(pages, list) or not pages or len(pages) > 20 or sum(len(p["text"]) for p in pages) > 50000:
             raise ValueError("提取响应无效")
         return pages
     except TimeoutError:
-        raise AppError(422, "DOCUMENT_EXTRACTION_TIMEOUT", "提取超过时限，请拆分教学文件后重试") from None
+        raise AppError(422, "DOCUMENT_EXTRACTION_TIMEOUT", "提取超过时限，请拆分示例文件后重试") from None
     finally:
         if process.returncode is None:
             with suppress(ProcessLookupError):

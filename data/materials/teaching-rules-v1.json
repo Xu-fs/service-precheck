@@ -1,10 +1,10 @@
 {
   "version": "teaching-2026-10-v1",
   "status": "teaching_fixture_not_publication",
-  "scope": "全部虚构，仅用于本地教学，不是实际政务政策",
+  "scope": "全部虚构，仅用于本地示例，不是实际政务政策",
   "matters": {
-    "residence-permit": {"scenario_id":"rental-demo", "required":["identity","residence","application"], "source":"data/materials/两事项教学规则指南.md#居住证申领"},
-    "sole-trader-registration": {"scenario_id":"standard-demo", "required":["identity","application","business_address"], "source":"data/materials/两事项教学规则指南.md#个体工商户设立登记"}
+    "residence-permit": {"scenario_id":"rental-demo", "required":["identity","residence","application"], "source":"data/materials/两事项示例规则指南.md#居住证申领"},
+    "sole-trader-registration": {"scenario_id":"standard-demo", "required":["identity","application","business_address"], "source":"data/materials/两事项示例规则指南.md#个体工商户设立登记"}
   },
   "required_fields": ["name", "address", "date"],
   "reference_date":"2026-10-31"

@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse
 
 from zhengwu_precheck.api.staff_dependencies import staff_csrf, staff_identity
 from zhengwu_precheck.core.errors import AppError
-from zhengwu_precheck.core.staff_permissions import MODULES, allows, public_identity
+from zhengwu_precheck.core.staff_permissions import allows, public_identity, workspace_context
 from zhengwu_precheck.infrastructure.prompt_repository import MATTERS
 from zhengwu_precheck.utils.security import digest
 
@@ -39,8 +39,7 @@ async def _render(request, identity, matter_id, *, error=None, status=200):
     repository = request.app.state.prompt_repo
     versions = await repository.history(identity, matter_id)
     return request.app.state.templates.TemplateResponse(request=request, name="staff/prompts.html", status_code=status, context={
-        "identity": public_identity(identity), "public_identity": public_identity(identity),
-        "modules": [m for m in MODULES if allows(identity["grants"], m["permission"])],
+        **workspace_context(identity), "public_identity": public_identity(identity),
         "module_name": "提示词模板", "csrf_token": digest("staff-csrf:" + request.cookies.get("zw_staff_csrf", "")),
         "matters": {key: name for key, name in MATTERS.items() if allows(identity["grants"], "prompt.manage", key)},
         "matter_id": matter_id, "matter_name": MATTERS[matter_id], "versions": versions,

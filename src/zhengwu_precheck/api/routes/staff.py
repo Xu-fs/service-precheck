@@ -1,4 +1,4 @@
-"""第一批工作人员后台：真正的SSR登录与授权页面，后续模块明确显示未开放。"""
+"""工作人员登录与按岗位展示的SSR工作台。"""
 import secrets
 from uuid import UUID
 from fastapi import APIRouter, Request
@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from zhengwu_precheck.api.schemas import LoginInput
 from zhengwu_precheck.api.staff_dependencies import staff_csrf, staff_identity, require_permission
 from zhengwu_precheck.core.errors import AppError
-from zhengwu_precheck.core.staff_permissions import MODULES, allows, public_identity
+from zhengwu_precheck.core.staff_permissions import public_identity, workspace_context
 from zhengwu_precheck.utils.security import digest
 
 router = APIRouter(prefix="/staff")
@@ -126,17 +126,16 @@ async def conversation_messages(conversation_id: UUID, request: Request):
     return await request.app.state.staff_repo.record(await staff_identity(request), str(conversation_id), body=True)
 
 
-async def render_workspace(request, module=None):
+async def render_workspace(request):
     try:
-        identity = await require_permission(request, module["permission"] if module else "workspace.view")
+        identity = await require_permission(request, "workspace.view")
     except AppError as error:
         if error.status == 401:
             return RedirectResponse("/staff/login", status_code=303)
         raise
-    visible = [item for item in MODULES if allows(identity["grants"], item["permission"])]
     return request.app.state.templates.TemplateResponse(request=request, name="staff/workspace.html", context={
-        "identity": public_identity(identity), "modules": visible, "module": module,
-        "csrf_token": csrf_value(request.cookies.get(CSRF, "")), "system_health": allows(identity["grants"], "system.health"),
+        **workspace_context(identity), "module_name": "我的工作台",
+        "csrf_token": csrf_value(request.cookies.get(CSRF, "")),
     })
 
 
@@ -145,9 +144,10 @@ async def workspace(request: Request):
     return await render_workspace(request)
 
 
-@router.get("/{module_slug}")
-async def upcoming(module_slug: str, request: Request):
-    module = next((item for item in MODULES if item["slug"] == module_slug), None)
-    if not module:
-        raise AppError(404, "NOT_FOUND", "该后台页面不存在")
-    return await render_workspace(request, module)
+@router.get("/system")
+async def system_page(request: Request):
+    identity = await require_permission(request, "system.health")
+    return request.app.state.templates.TemplateResponse(request=request, name="staff/system.html", context={
+        **workspace_context(identity), "module_name": "系统运行状态",
+        "csrf_token": csrf_value(request.cookies.get(CSRF, "")), "status": await system_status(request),
+    })

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}"><link rel="icon" href="data:,">
+  <title>流程演示（示例） · 政务易办</title>
+  <link rel="stylesheet" href="/static/css/workflow_demo.css">
+  <script type="module" src="/static/js/workflow_demo.js"></script>
+</head>
+<body>
+<header class="demo-header"><a class="demo-brand" href="/">政务易办</a><nav><a href="/my/tickets">手动逐步办理</a><a href="/">返回首页</a></nav></header>
+<main id="workflow-demo" data-run-id="{{ run_id }}" data-example-id="{{ preset_id }}">
+  <div class="demo-heading"><div><h1>流程演示 <span>（示例）</span></h1><p>跟随各岗位，查看一次完整的咨询工单办理过程。</p></div>{% if who %}<p>当前登录：{{ who.username }}</p>{% endif %}</div>
+  {% if not who %}
+  <section class="demo-notice"><h2>请先登录</h2><p>使用办事人账号登录后，可自动演示或逐步执行两个预设案例。</p><a href="/">前往首页登录</a></section>
+  {% else %}
+  <section class="demo-toolbar" aria-label="演示控制">
+    <label>案例<select id="demo-preset">{% for case in example_cases %}<option value="{{ case.id }}" {% if case.id == preset_id %}selected{% endif %}>{{ case.title }}</option>{% endfor %}</select></label>
+    <label>播放速度<select id="demo-speed"><option value="1500">正常</option><option value="3000">详细</option><option value="200">快速</option></select></label>
+    <div class="demo-actions"><button id="demo-play" class="primary">开始自动演示</button><button id="demo-pause" disabled>暂停</button><button id="demo-next">下一步</button><button id="demo-new">新建一轮示例</button></div>
+    <p>自动切换演示视角，保留每一步处理记录。独立示例记录与手动工单分别保存，当前登录身份保持不变。</p>
+  </section>
+  <p id="demo-status" role="status" aria-live="polite">选择案例，开始自动演示；也可点击“下一步”逐步查看。</p>
+  <div class="demo-layout">
+    <aside class="demo-progress"><h2>办理流程</h2><p id="demo-count">尚未开始</p><progress id="demo-progress" max="11" value="0" aria-label="办理进度"></progress><ol id="demo-steps"></ol></aside>
+    <div class="demo-records">
+      <section class="demo-stage" id="demo-stage" data-role="citizen" aria-label="当前演示视角"><div class="stage-label">演示视角（示例）</div><h2 id="demo-role">办事人</h2><h3 id="demo-title">准备发起咨询工单</h3><p id="demo-operation">开始后将在这里展示当前岗位的办理动作。</p><p id="demo-result"></p></section>
+      <section class="demo-log"><h2>用户消息与处理答复</h2><div id="demo-messages"><p>本轮尚无消息。</p></div></section>
+      <section class="demo-log"><h2>转派与接收</h2><ol id="demo-transfers"><li>本轮尚无转派。</li></ol></section>
+    </div>
+  </div>
+  <details class="demo-log"><summary>历史演示记录</summary><ul id="demo-history"></ul></details>
+  <p class="demo-footnote">本页演示咨询处理意见的初审、复核与确认结案，正式政务申请审批接口尚未接入。需要亲自切换岗位操作时，请使用“手动逐步办理”。</p>
+  <noscript><p>自动演示需要启用浏览器脚本。您仍可使用<a href="/my/tickets">手动逐步办理</a>。</p></noscript>
+  {% endif %}
+</main>
+</body>
+</html>

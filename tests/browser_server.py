@@ -20,8 +20,8 @@ from test_chat import FakeQA
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / ".venv" / "browser-results"
 REQUESTS = OUTPUT / "content-model-requests.jsonl"
-FIELD_QUOTE = "教学蓝色回执包含示例编号和提交月份两个字段。"
-PDF_QUOTE = "教学人工补充页要求填写示例颜色和示例数量。"
+FIELD_QUOTE = "示例蓝色回执包含示例编号和提交月份两个字段。"
+PDF_QUOTE = "示例人工补充页要求填写示例颜色和示例数量。"
 
 
 class BrowserQA(GuideQA):
@@ -75,13 +75,13 @@ def model_fixture(request):
     source = next((item for item in sources if preferred in item["text"]), sources[0])
     quote = preferred if preferred in source["text"] else next(iter(re.findall(r"[^。！？\n]+[。！？]", source["text"])), source["text"])
     if "无效引用" in question:
-        quote = "这一句从未出现在教学原文中。"
+        quote = "这一句从未出现在示例原文中。"
     raw = json.dumps({"supported": True, "citations": [{"chunk_id": source["chunk_id"], "quote": quote}]}, ensure_ascii=False)
     return httpx.Response(200, json={"choices": [{"message": {"content": raw}}]})
 
 
 settings = Settings(staff_jwt_secret=os.getenv("BROWSER_STAFF_TEST_SECRET"),
-                    guide_path=ROOT / "data" / "居住证申领_教学指南.md")
+                    guide_path=ROOT / "data" / "居住证申领_示例指南.md")
 app = create_app(settings, qa=BrowserQA(settings))
 original_lifespan = app.router.lifespan_context
 

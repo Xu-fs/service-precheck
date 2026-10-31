@@ -121,7 +121,7 @@ class KnowledgeRepository:
         if (SCENARIOS.get(matter_id) != scenario_id or kind not in KINDS or not is_teaching
                 or not 1 <= len(title.strip()) <= 150 or not 1 <= len(source_uri.strip()) <= 1000
                 or not 1 <= len(rule_version.strip()) <= 80):
-            raise AppError(422, "INVALID_KNOWLEDGE", "请填写事项、情形、类型、版本及来源，并确认仅上传教学资料")
+            raise AppError(422, "INVALID_KNOWLEDGE", "请填写事项、情形、类型、版本及来源，并确认仅上传示例资料")
         filename = Path(filename.replace("\\", "/")).name
         visibility = visibility or ("staff" if kind == "workflow" else "public")
         if visibility not in {"public", "staff"} or (kind == "workflow" and visibility != "staff"):
@@ -154,7 +154,7 @@ class KnowledgeRepository:
         source = await self.get_version(identity, version_id, "knowledge.manage")
         rule_version = rule_version.strip()
         if source["archived"] or not isinstance(content, str) or not content.strip() or len(content) > 50000 or not 1 <= len(rule_version.strip()) <= 80:
-            raise AppError(422, "INVALID_KNOWLEDGE", "请填写不超过50000字符的教学正文和新版本号，归档文档不可修改")
+            raise AppError(422, "INVALID_KNOWLEDGE", "请填写不超过50000字符的示例正文和新版本号，归档文档不可修改")
         pages = json.loads(source["pages_json"] or "[]")
         if source["filename"].lower().endswith(".pdf"):
             if type(page) is not int or not 1 <= page <= len(pages):

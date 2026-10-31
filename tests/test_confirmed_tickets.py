@@ -28,7 +28,7 @@ class ConfirmedTicketTests(unittest.IsolatedAsyncioTestCase):
         await self.agent.initialize()
         self.tickets = TicketRepository(self.chat.engine, clock=lambda: self.now)
         await self.tickets.initialize()
-        self.payload = dict(title='教学咨询', content='只共享这段虚构问题', matter_id='residence-permit',
+        self.payload = dict(title='示例咨询', content='只共享这段虚构问题', matter_id='residence-permit',
                             scenario_id='rental-demo', shared_material_ids=[])
 
     async def asyncTearDown(self):
@@ -92,7 +92,7 @@ class ConfirmedTicketTests(unittest.IsolatedAsyncioTestCase):
         payload={**self.payload,'case_id':'case-a','shared_material_ids':[material['id']],
             'shared_material_versions':[{'id':material['id'],'version':material['version'],'sha256':material['sha256']}]}
         draft,confirmation=await self.prepare(payload)
-        await materials.correct_fields('alice',material['id'],material['version'],'identity',{'name':'教学甲'})
+        await materials.correct_fields('alice',material['id'],material['version'],'identity',{'name':'示例甲'})
         with self.assertRaises(AppError) as error:
             await self.submit(draft,confirmation)
         self.assertEqual(error.exception.code,'MATERIAL_CHANGED')

@@ -29,8 +29,8 @@ class TeachingWorkflowTests(unittest.IsolatedAsyncioTestCase):
     async def publish_candidate(self,matter):
         residence=matter=='residence-permit'
         scenario='rental-demo' if residence else 'standard-demo'
-        filename='居住证申领_教学指南_v1.md' if residence else '个体工商户设立登记_教学指南_v1.md'
-        item=await self.repo.upload(self.owner,title='虚构教学指南候选',matter_id=matter,scenario_id=scenario,
+        filename='居住证申领_示例指南_v1.md' if residence else '个体工商户设立登记_示例指南_v1.md'
+        item=await self.repo.upload(self.owner,title='虚构示例指南候选',matter_id=matter,scenario_id=scenario,
             kind='guide',filename=filename,source_uri='data/materials/'+filename,rule_version='teaching-2026-10-v1',
             raw=(ROOT/'data/materials'/filename).read_bytes(),is_teaching=True,visibility='public')
         await self.app.state.knowledge_service.run_once()
@@ -43,7 +43,7 @@ class TeachingWorkflowTests(unittest.IsolatedAsyncioTestCase):
         selection=await self.checked('POST',f'/agent/cases/{case}/selection',json={'matter_id':matter,'scenario_id':scenario,'snapshot_id':rules['snapshot_id']})
         return case,rules,selection
 
-    async def add_material(self,case,kind,name='教学甲'):
+    async def add_material(self,case,kind,name='示例甲'):
         item=await self.checked('POST',f'/agent/cases/{case}/materials',data={'consent':'true'},
             files={'file':('fictional-identity.png',(ROOT/'data/materials/fictional-identity.png').read_bytes(),'image/png')})
         self.assertNotIn('path',item)
@@ -73,7 +73,7 @@ class TeachingWorkflowTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(fetched['id'],positive['id'])
                 missing,_=await self.check_set(case,rules,selection,materials[:-1])
                 self.assertEqual(missing['result'],'疑似缺项')
-                changed=await self.checked('PUT',f"/agent/materials/{materials[0]['id']}/fields",json={'expected_version':materials[0]['version'],'kind':'identity','fields':{'name':'教学乙','address':'虚构路一号','date':'2026-10-01'}})
+                changed=await self.checked('PUT',f"/agent/materials/{materials[0]['id']}/fields",json={'expected_version':materials[0]['version'],'kind':'identity','fields':{'name':'示例乙','address':'虚构路一号','date':'2026-10-01'}})
                 stale=await self.checked('GET',f"/agent/prechecks/{positive['id']}",status=409)
                 self.assertEqual(stale['error']['code'],'MATERIAL_SET_STALE')
                 conflict,_=await self.check_set(case,rules,selection,[changed,*materials[1:]])
@@ -81,7 +81,7 @@ class TeachingWorkflowTests(unittest.IsolatedAsyncioTestCase):
                 await self.checked('DELETE',f"/agent/materials/{materials[-1]['id']}")
                 revoked=await self.checked('GET',f"/agent/prechecks/{conflict['id']}",status=409)
                 self.assertEqual(revoked['error']['code'],'MATERIAL_SET_STALE')
-                await self.repo.release_action(self.supervisor,release['id'],'retire','虚构教学版本停用')
+                await self.repo.release_action(self.supervisor,release['id'],'retire','虚构示例版本停用')
                 stale_rule=await self.client.post(f'/agent/cases/{case}/precheck',json=body)
                 self.assertEqual(stale_rule.status_code,409,stale_rule.text)
 
@@ -89,7 +89,7 @@ class TeachingWorkflowTests(unittest.IsolatedAsyncioTestCase):
     async def test_same_version_label_with_different_guide_bytes_cannot_authorize_precheck(self):
         item=await self.repo.upload(self.owner,title='虚构不匹配指南',matter_id='sole-trader-registration',scenario_id='standard-demo',
             kind='guide',filename='unrelated.md',source_uri='虚构本地测试',rule_version='teaching-2026-10-v1',
-            raw='虚构但内容不匹配的教学指南，版本名称不能作为规则批准凭证。'.encode('utf-8'),is_teaching=True,visibility='public')
+            raw='虚构但内容不匹配的示例指南，版本名称不能作为规则批准凭证。'.encode('utf-8'),is_teaching=True,visibility='public')
         await self.app.state.knowledge_service.run_once()
         await self.published(item)
         case,rules,selection=await self.choose('sole-trader-registration','standard-demo')
@@ -104,7 +104,7 @@ class TeachingWorkflowTests(unittest.IsolatedAsyncioTestCase):
         items=[await self.add_material(case,kind) for kind in ['identity','residence','application']]
         checked,_=await self.check_set(case,rules,selection,items)
         draft=await self.checked('POST','/agent/drafts',json={
-            'title':'虚构教学共享','content':'请人工核对已共享材料和教学预检摘要',
+            'title':'虚构示例共享','content':'请人工核对已共享材料和示例预检摘要',
             'matter_id':'residence-permit','scenario_id':'rental-demo','case_id':case,
             'shared_material_ids':[items[0]['id']],'precheck_id':checked['id']})
         confirmation=await self.checked('POST',f"/agent/drafts/{draft['id']}/confirm",json={'draft_version':draft['version']})
@@ -151,7 +151,7 @@ class TeachingWorkflowTests(unittest.IsolatedAsyncioTestCase):
         async def changed(*args,**kwargs):
             result=await original(*args,**kwargs)
             await repository.correct_fields(result['user_id'] if 'user_id' in result else args[0],
-                items[0]['id'],items[0]['version'],'identity',{'name':'教学乙'})
+                items[0]['id'],items[0]['version'],'identity',{'name':'示例乙'})
             return result
         with patch.object(repository,'precheck',side_effect=changed):
             result=await self.checked('POST',f'/agent/cases/{case}/precheck',json={

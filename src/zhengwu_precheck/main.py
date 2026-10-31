@@ -19,9 +19,12 @@ from zhengwu_precheck.api.routes import chat, sessions, staff, knowledge, prompt
 from zhengwu_precheck.api.routes import agent
 from zhengwu_precheck.api.routes import materials
 from zhengwu_precheck.api.routes import operations
+from zhengwu_precheck.api.routes import workflow_demo
+from zhengwu_precheck.api.routes import public_services
 from zhengwu_precheck.infrastructure.request_limiter import SharedRateLimiter
 from zhengwu_precheck.infrastructure.agent_repository import AgentRepository
 from zhengwu_precheck.core.services.agent import AgentService
+from zhengwu_precheck.core.services.workflow_demo import WorkflowDemo
 from zhengwu_precheck.infrastructure.material_repository import MaterialRepository
 from zhengwu_precheck.infrastructure.quota_repository import QuotaRepository, QuotaLimits
 from zhengwu_precheck.core.services.model_budget import ModelBudget
@@ -54,6 +57,7 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
     knowledge_service = KnowledgeService(knowledge_repo, service, settings)
     ticket_repo = TicketRepository(repo.engine)
     agent_repo = AgentRepository(repo.engine)
+    example_workflow = WorkflowDemo(settings.runtime_dir / 'workflow-demo')
     material_repo = MaterialRepository(repo.engine,settings.runtime_dir/'private-materials',
         processor={'trusted_teaching':True} if settings.trusted_teaching_materials else None)
     quota_repo = QuotaRepository(repo.engine)
@@ -85,15 +89,17 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
             ticket_repo.stop()
             await asyncio.gather(worker, ticket_worker, return_exceptions=True)
             await service.close()
+            await example_workflow.close()
             await repo.close()
 
-    app = FastAPI(title="政务易办教学问答", lifespan=lifespan, docs_url=None, redoc_url=None)
+    app = FastAPI(title="政务易办示例问答", lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.repo, app.state.qa, app.state.settings = repo, service, settings
     app.state.staff_repo, app.state.staff_auth = staff_repo, StaffAuth(staff_repo, settings.staff_jwt_secret)
     app.state.prompt_repo, app.state.audit_repo = prompt_repo, audit_repo
     app.state.knowledge_repo, app.state.knowledge_service = knowledge_repo, knowledge_service
     app.state.ticket_repo = ticket_repo
     app.state.agent_repo = agent_repo
+    app.state.workflow_demo = example_workflow
     app.state.agent_service = AgentService(app)
     ticket_repo.validate_current_precheck = app.state.agent_service.validate_precheck
     app.state.material_repo = material_repo
@@ -176,12 +182,14 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
     app.include_router(agent.router)
     app.include_router(materials.router)
     app.include_router(operations.router)
+    app.include_router(workflow_demo.router)
+    app.include_router(public_services.router)
     app.include_router(staff.router)
     return app
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="政务易办教学问答网页")
+    parser = argparse.ArgumentParser(description="政务易办示例问答网页")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--check", action="store_true", help="只检查依赖导入，不启动服务")

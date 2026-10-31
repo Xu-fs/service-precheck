@@ -42,7 +42,7 @@ async def messages(session_id: UUID, request: Request, who=Depends(principal),
 @router.post("/sessions/{session_id}/matter", dependencies=[Depends(csrf)])
 async def confirm(session_id: UUID, body: MatterInput, request: Request, who=Depends(principal)):
     if not any(item["matter_id"] == body.matter_id and item["scenario_id"] == body.scenario_id for item in MATTERS):
-        raise AppError(422, "INVALID_MATTER", "请选择有效的事项及教学情形")
+        raise AppError(422, "INVALID_MATTER", "请选择有效的事项及申请情形")
     await request.app.state.repo.confirm(str(session_id), who, body.matter_id, body.scenario_id, body.confirmation_token)
     return {"matter_id": body.matter_id, "scenario_id": body.scenario_id, "confirmed": True}
 

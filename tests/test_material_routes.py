@@ -12,11 +12,11 @@ class MaterialRouteTests(unittest.IsolatedAsyncioTestCase):
     async def test_upload_transcription_precheck_and_rule_publication_gate(self):
         case=(await self.client.post('/agent/cases',json={})).json()['case_id']
         image=(Path(__file__).resolve().parents[1]/'data/materials/fictional-identity.png').read_bytes()
-        response=await self.client.post(f'/agent/cases/{case}/materials',files={'file':('教学.png',image,'image/png')},data={'consent':'true'})
+        response=await self.client.post(f'/agent/cases/{case}/materials',files={'file':('示例.png',image,'image/png')},data={'consent':'true'})
         self.assertEqual(response.status_code,200,response.text)
         item=response.json()
         corrected=await self.client.put('/agent/materials/'+item['id']+'/fields',json={
-            'expected_version':item['version'],'kind':'identity','fields':{'name':'教学甲','address':'虚构路一号','date':'2026-10-01'}})
+            'expected_version':item['version'],'kind':'identity','fields':{'name':'示例甲','address':'虚构路一号','date':'2026-10-01'}})
         self.assertEqual(corrected.status_code,200,corrected.text)
         mset=await self.client.post(f'/agent/cases/{case}/material-sets',json={'material_ids':[item['id']]})
         self.assertEqual(mset.status_code,200,mset.text)

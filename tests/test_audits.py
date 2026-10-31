@@ -91,7 +91,7 @@ class AuditTests(unittest.IsolatedAsyncioTestCase):
     async def test_citations_accept_saved_matter_name_but_exclude_other_matter(self):
         await self.grant()
         async with self.chat.engine.begin() as conn:
-            await conn.execute(text("INSERT INTO message_citations VALUES('citation-1','m1','chunk-1','教学指南','居住证申领','v1','已保存的依据')"))
+            await conn.execute(text("INSERT INTO message_citations VALUES('citation-1','m1','chunk-1','示例指南','居住证申领','v1','已保存的依据')"))
             await conn.execute(text("INSERT INTO message_citations VALUES('citation-2','m1','chunk-2','其他指南','sole-trader-registration','v1','其他事项依据')"))
         item = await self.repo.detail(self.identity, 'message:m1')
         self.assertEqual([c['quote'] for c in item['citations']], ['已保存的依据'])

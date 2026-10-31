@@ -35,7 +35,7 @@ class EvaluationContractTests(unittest.TestCase):
         cases=self.load()
         self.assertEqual(sum('陷阱' in c['expected_behavior'] for c in cases[:10]),3)
         text='\n'.join(c['expected_behavior'] for c in cases)
-        for requirement in ['历史有效','核验依据','版本冲突','关键系统','未登录','未经本人确认','草稿修改','幂等','DEMO-2026-01']:
+        for requirement in ['历史有效','核验依据','版本冲突','关键系统','未登录','未经本人确认','草稿修改','幂等','DEMO-2026-02']:
             self.assertIn(requirement,text)
         full=[c for c in cases if c['expected_tools']==['search_guidelines','recommend_matter','check_materials','prepare_ticket_draft','create_manual_ticket','get_ticket_status']]
         self.assertEqual(len(full),1)
@@ -45,8 +45,8 @@ class EvaluationContractTests(unittest.TestCase):
 
     def test_real_baseline_validator_rejects_fabricated_trap_answers_without_network(self):
         from zhengwu_precheck.core import guide_rag as rag
-        chunks=rag.load_chunks(ROOT/'data/居住证申领_教学指南.md')
-        self.assertTrue(all(c.version=='DEMO-2026-01' and c.matter=='居住证申领' for c in chunks))
+        chunks=rag.load_chunks(ROOT/'data/居住证申领_示例指南.md')
+        self.assertTrue(all(c.version=='DEMO-2026-02' and c.matter=='居住证申领' for c in chunks))
         hits=[rag.Hit(chunk,1,1,1) for chunk in chunks]
         traps=[c for c in self.load()[:10] if '陷阱' in c['expected_behavior']]
         fabricated=['办理费用为10元。','办理期限为3个工作日。','个体工商户登记必须提供营业场所产权证。']
@@ -60,8 +60,8 @@ class EvaluationContractTests(unittest.TestCase):
         from zhengwu_precheck.core.services.agent_tools import dispatch
         case=next(c for c in self.load() if len(c['expected_tools'])==6)
         arguments={
-            'search_guidelines':dict(query='虚构租赁教学',jurisdiction_code='teaching'),
-            'recommend_matter':dict(case_id='fictional',intent='教学咨询',search_result_id='simulated-search'),
+            'search_guidelines':dict(query='虚构租赁示例',jurisdiction_code='teaching'),
+            'recommend_matter':dict(case_id='fictional',intent='示例咨询',search_result_id='simulated-search'),
             'check_materials':dict(case_id='fictional',selection_confirmation_id='simulated-human-selection',rule_snapshot_id='simulated-rule',material_set_id='simulated-materials',expected_case_version=1),
             'prepare_ticket_draft':dict(case_id='fictional',purpose='ordinary_consultation',summary='虚构咨询',expected_case_version=1),
             'create_manual_ticket':dict(draft_id='simulated-draft',draft_version=1,submission_confirmation_id='simulated-human-submit',idempotency_key='fictional-stable-key'),

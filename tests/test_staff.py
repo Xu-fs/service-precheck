@@ -146,7 +146,7 @@ class StaffTests(unittest.IsolatedAsyncioTestCase):
         # 使用现有真实会话表，无材料/工单假数据。
         from zhengwu_precheck.utils.security import digest
         who = {"user_id": None, "anonymous_hash": digest("test-visitor"), "key": "anon:" + digest("test-visitor")}
-        turn = await self.app.state.repo.reserve(None, "教学问题", str(uuid4()), who)
+        turn = await self.app.state.repo.reserve(None, "示例问题", str(uuid4()), who)
         await self.app.state.repo.finish(turn, {"outcome": "insufficient_evidence", "text": "现有办事指南中未找到相关依据", "citations": []})
         sid = turn["session_id"]
         async with self.app.state.repo.engine.begin() as conn:
@@ -171,7 +171,7 @@ class StaffTests(unittest.IsolatedAsyncioTestCase):
         await self.app.state.staff_repo.grant_record("window", sid, "body", actor="test-operator")
         body_result = await self.client.get(url + "/messages")
         self.assertEqual(body_result.status_code, 200)
-        self.assertIn("教学问题", body_result.text)
+        self.assertIn("示例问题", body_result.text)
         self.assertNotIn("工商事项历史正文", body_result.text)
         await self.app.state.repo.create_user("hotline", "test-only-password")
         await self.app.state.staff_repo.grant_role("hotline", "hotline", "residence-permit", actor="test-operator")

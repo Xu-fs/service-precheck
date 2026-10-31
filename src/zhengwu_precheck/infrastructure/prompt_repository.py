@@ -25,7 +25,7 @@ class PromptRepository:
                 matter_id TEXT PRIMARY KEY,version INTEGER NOT NULL)"""))
             for matter in MATTERS:
                 await conn.execute(text("""INSERT OR IGNORE INTO prompt_versions
-                    VALUES(:id,:matter,1,:content,NULL,:now,'初始教学模板',NULL)"""),
+                    VALUES(:id,:matter,1,:content,NULL,:now,'初始示例模板',NULL)"""),
                     {"id": str(uuid4()), "matter": matter, "content": DEFAULT_SYSTEM_PROMPT, "now": time.time()})
                 await conn.execute(text("INSERT OR IGNORE INTO prompt_heads VALUES(:matter,1)"), {"matter": matter})
 

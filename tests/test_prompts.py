@@ -48,7 +48,7 @@ class PromptTests(unittest.IsolatedAsyncioTestCase):
         other = await self.repo.active(OTHER)
         self.assertEqual(first["content"], DEFAULT_SYSTEM_PROMPT)
         self.assertEqual(other["version"], 1)
-        saved = await self.repo.save(self.person, MATTER, "新模板", 1, "修改教学提示")
+        saved = await self.repo.save(self.person, MATTER, "新模板", 1, "修改示例提示")
         await self.repo.initialize()
         self.assertEqual((await self.repo.active(MATTER))["id"], saved["id"])
         self.assertEqual((await self.repo.active(OTHER))["id"], other["id"])

@@ -10,7 +10,8 @@ from zhengwu_precheck.api.dependencies import csrf, principal
 from zhengwu_precheck.api.staff_dependencies import staff_csrf, staff_identity
 from zhengwu_precheck.core.errors import AppError
 from zhengwu_precheck.core.services.chat import MATTERS
-from zhengwu_precheck.core.staff_permissions import MODULES, ROLE_PERMISSIONS, allows, public_identity
+from zhengwu_precheck.core.services.demo_cases import case_for_ticket, workflow_cases, workflow_hint
+from zhengwu_precheck.core.staff_permissions import ROLES, ROLE_PERMISSIONS, allows, workspace_context
 from zhengwu_precheck.utils.security import digest
 
 router = APIRouter()
@@ -83,13 +84,26 @@ def _time(value):
 
 
 def _common(request):
-    return {'statuses': STATUS, 'matters': MATTERS, 'time_text': _time, 'new_key': lambda: secrets.token_urlsafe(24)}
+    return {'statuses': STATUS, 'matters': MATTERS, 'time_text': _time, 'role_names': ROLES,
+            'example_cases': workflow_cases(), 'new_key': lambda: secrets.token_urlsafe(24)}
+
+
+def _example_context(detail):
+    case = case_for_ticket(detail['ticket']) if detail else None
+    return {'workflow_example': case, 'example_hint': workflow_hint(detail, case) if case else None}
 
 
 async def _staff_context(request, identity):
-    return {**_common(request), 'identity': public_identity(identity),
-            'modules': [m for m in MODULES if allows(identity['grants'], m['permission'])],
-            'module_name': '工单处理', 'csrf_token': digest('staff-csrf:' + request.cookies.get('zw_staff_csrf', ''))}
+    workspace = workspace_context(identity)
+    scopes = [('all', '全部可见')]
+    if allows(identity['grants'], 'ticket.transfer'):
+        scopes.append(('queue', '窗口公共队列'))
+    if allows(identity['grants'], 'ticket.handle') or allows(identity['grants'], 'ticket.escalated'):
+        scopes.extend([('mine', '我的工单'), ('pending', '待接收转派')])
+    return {**_common(request), **workspace,
+            'matters': [m for m in MATTERS if allows(identity['grants'], 'ticket.list', m['matter_id'])],
+            'ticket_scopes': scopes, 'module_name': workspace['ticket_workspace']['ticket_name'],
+            'csrf_token': digest('staff-csrf:' + request.cookies.get('zw_staff_csrf', ''))}
 
 
 @router.get('/tickets')
@@ -115,6 +129,15 @@ async def create(request: Request):
 async def citizen_detail(ticket_id: str, request: Request):
     who = await _citizen(request)
     return await request.app.state.ticket_repo.citizen_detail(who['user_id'], ticket_id)
+
+
+@router.post('/tickets/submit')
+async def submit_manual(request: Request):
+    data = await _body(request, citizen=True)
+    who = await _citizen(request)
+    await request.app.state.shared_limiter.check('ticket-create:' + who['key'], 20, 60)
+    result = await request.app.state.ticket_repo.create_manual(who['user_id'], data)
+    return RedirectResponse('/my/tickets?ticket_id=' + quote(result['id']) + '#ticket-detail', 303) if _form(request) else result
 
 
 async def _citizen_action(ticket_id, request, action):
@@ -145,7 +168,15 @@ async def read_notification(notification_id: str, request: Request):
     await _body(request, action=True, citizen=True)
     who = await _citizen(request)
     result = await request.app.state.ticket_repo.read_notification(who['user_id'], notification_id)
-    return RedirectResponse('/my/tickets', 303) if _form(request) else result
+    return RedirectResponse('/#notification-panel', 303) if _form(request) else result
+
+
+@router.post('/notifications/{notification_id}/delete')
+async def delete_notification(notification_id: str, request: Request):
+    await _body(request, action=True, citizen=True)
+    who = await _citizen(request)
+    result = await request.app.state.ticket_repo.delete_notification(who['user_id'], notification_id)
+    return RedirectResponse('/#notification-panel', 303) if _form(request) else result
 
 
 @router.get('/my/tickets')
@@ -154,10 +185,10 @@ async def citizen_page(request: Request):
     rotate = not 32 <= len(token) <= 128
     if rotate:
         token = secrets.token_urlsafe(32)
-    context = {**_common(request), 'csrf_token': digest('csrf:' + token), 'who': None, 'detail': None, 'result': None, 'notifications': [], 'login_error': None}
+    context = {**_common(request), 'csrf_token': digest('csrf:' + token), 'who': None, 'detail': None, 'result': None, 'login_error': None}
     try:
         who = await _citizen(request)
-        context.update(who=who, result=await request.app.state.ticket_repo.citizen_list(who['user_id'], _filters(request)), notifications=await request.app.state.ticket_repo.notifications(who['user_id']))
+        context.update(who=who, result=await request.app.state.ticket_repo.citizen_list(who['user_id'], _filters(request)))
         if ticket_id := request.query_params.get('ticket_id'):
             context['detail'] = await request.app.state.ticket_repo.citizen_detail(who['user_id'], ticket_id)
     except AppError as error:
@@ -165,8 +196,14 @@ async def citizen_page(request: Request):
             raise
         context['login_error'] = error.message if request.cookies.get('zw_auth') else '请先登录，再提交和查看自己的工单。'
     context['page_link'] = lambda page: '/my/tickets?' + urlencode({**request.query_params, 'page': page})
-    # 仅预填关联标识；真正归属和事项一致性在创建事务中校验。
+    # GET只预填内容；点击提交时由普通工单服务校验归属并建单。
     context['prefill'] = {key: request.query_params.get(key, '') for key in ('conversation_id','message_id','matter_id','scenario_id')}
+    context['prefill'].update(title='', content='')
+    preset = next((case for case in context['example_cases'] if case['id'] == request.query_params.get('example')), None)
+    if preset:
+        context['prefill'].update({key: preset[key] for key in ('title', 'content', 'matter_id', 'scenario_id')},
+                                  conversation_id='', message_id='')
+    context.update(_example_context(context['detail']))
     response = request.app.state.templates.TemplateResponse(request=request, name='tickets.html', context=context)
     if rotate:
         response.set_cookie('zw_anon', token, httponly=True, secure=request.app.state.settings.secure_cookies, samesite='lax', max_age=30*86400, path='/')
@@ -195,16 +232,30 @@ async def transitions(ticket_id: str, request: Request):
 
 
 async def _staff_action(ticket_id, request, action, transfer_id=None):
-    await staff_csrf(request)
-    identity = await staff_identity(request)
-    data = await _body(request, action=True)
-    # SSR选择项合并为一个值，避免用户把甲的身份和乙的岗位意外拼接。
-    if target := data.pop('target', None):
-        try:
-            data['target_user_id'], data['target_role'] = target.split('|', 1)
-        except ValueError:
-            raise AppError(422, 'INVALID_REQUEST', '请选择有效接收人') from None
-    result = await request.app.state.ticket_repo.staff_action(identity, ticket_id, action, data, transfer_id)
+    identity = None
+    try:
+        await staff_csrf(request)
+        identity = await staff_identity(request)
+        data = await _body(request, action=True)
+        # 兼容旧版指定人员的表单。
+        if target := data.pop('target', None):
+            try:
+                data['target_user_id'], data['target_role'] = target.split('|', 1)
+            except ValueError:
+                raise AppError(422, 'INVALID_REQUEST', '请选择有效接收职务') from None
+        result = await request.app.state.ticket_repo.staff_action(identity, ticket_id, action, data, transfer_id)
+    except AppError as error:
+        if not _form(request):
+            raise
+        if identity:
+            try:
+                return await _staff_detail_response(ticket_id, request, identity, error=error)
+            except AppError:
+                # 页面可能已失去工单查看权限；提示页不加载任何工单内容。
+                pass
+        return request.app.state.templates.TemplateResponse(
+            request=request, name='staff/ticket_action_error.html',
+            context={'action_error':error}, status_code=error.status)
     return RedirectResponse('/staff/tickets/' + quote(ticket_id), 303) if _form(request) else result
 
 
@@ -246,8 +297,9 @@ async def staff_page(request: Request):
         if error.status == 401:
             return RedirectResponse('/staff/login', 303)
         raise
+    result = await request.app.state.ticket_repo.staff_list(identity, _filters(request))
     context = await _staff_context(request, identity)
-    context.update(result=await request.app.state.ticket_repo.staff_list(identity, _filters(request)), filters={**_filters(request), 'scope': request.query_params.get('scope', 'all')})
+    context.update(result=result, filters={**_filters(request), 'scope': request.query_params.get('scope', 'all')})
     context['page_link'] = lambda page: '/staff/tickets?' + urlencode({**request.query_params, 'page': page})
     context['can_accept'] = lambda ticket: allows(identity['grants'], 'ticket.handle', ticket['matter_id']) and any(g['role_code'] == 'window' and g['matter_id'] in ('*', ticket['matter_id']) for g in identity['grants'])
     return request.app.state.templates.TemplateResponse(request=request, name='staff/tickets.html', context=context)
@@ -261,6 +313,10 @@ async def staff_detail_page(ticket_id: str, request: Request):
         if error.status == 401:
             return RedirectResponse('/staff/login', 303)
         raise
+    return await _staff_detail_response(ticket_id, request, identity)
+
+
+async def _staff_detail_response(ticket_id, request, identity, *, error=None):
     detail = await request.app.state.ticket_repo.staff_detail(identity, ticket_id)
     ticket = detail['ticket']
     context = await _staff_context(request, identity)
@@ -270,8 +326,12 @@ async def staff_detail_page(ticket_id: str, request: Request):
     transfer_permission = {'window': 'ticket.transfer', 'reviewer': 'ticket.dispatch'}.get(ticket.get('owner_role'))
     can_transfer = can_handle and transfer_permission and any(transfer_permission in g.get('permissions', ROLE_PERMISSIONS.get(g['role_code'], set())) for g in owner_grants)
     targets = await request.app.state.ticket_repo.assignees(identity, ticket['matter_id'], ticket_id) if can_transfer and ticket['status'] != 'closed' else []
-    context.update(detail=detail, ticket=ticket, targets=targets, can_handle=can_handle, user_id=identity['user_id'])
-    return request.app.state.templates.TemplateResponse(request=request, name='staff/tickets_detail.html', context=context)
+    pending_transfer = next((tr for tr in detail['transfers'] if tr['status'] == 'pending'), None)
+    context.update(detail=detail, ticket=ticket, targets=targets, can_handle=can_handle,
+                   user_id=identity['user_id'], pending_transfer=pending_transfer, action_error=error)
+    context.update(_example_context(detail))
+    return request.app.state.templates.TemplateResponse(request=request, name='staff/tickets_detail.html', context=context,
+                                                         status_code=error.status if error else 200)
 
 
 

@@ -45,9 +45,9 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
             await self.base.close()
             self.temp.cleanup()
 
-    async def upload(self, raw=None, filename="教学.md"):
-        return await self.repo.upload(self.owner, title="教学指南", matter_id="residence-permit", scenario_id="rental-demo", kind="guide",
-                                     filename=filename, source_uri="自编教学资料", rule_version="DEMO-v1", raw=raw or "教学申请表包含姓名和居住地址。".encode(), is_teaching=True)
+    async def upload(self, raw=None, filename="示例.md"):
+        return await self.repo.upload(self.owner, title="示例指南", matter_id="residence-permit", scenario_id="rental-demo", kind="guide",
+                                     filename=filename, source_uri="自编示例资料", rule_version="DEMO-v1", raw=raw or "示例申请表包含姓名和居住地址。".encode(), is_teaching=True)
 
     async def processed(self):
         result = await self.upload()
@@ -60,8 +60,8 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         async with self.base.engine.begin() as conn:
             before = await self.repo.capture(conn, "residence-permit", "rental-demo")
         self.assertEqual(before["version_ids"], [])
-        release = await self.repo.create_release(self.owner, title="教学发布包", version_ids=[uploaded["version_id"]], effective_from=time.time()-1)
-        await self.repo.release_action(self.owner, release["id"], "submit", "提交教学版本")
+        release = await self.repo.create_release(self.owner, title="示例发布包", version_ids=[uploaded["version_id"]], effective_from=time.time()-1)
+        await self.repo.release_action(self.owner, release["id"], "submit", "提交示例版本")
         from zhengwu_precheck.core.errors import AppError
         with self.assertRaises(AppError):
             await self.repo.release_action(self.owner, release["id"], "approve", "越权审核")
@@ -73,7 +73,7 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(snapshot["version_ids"], [uploaded["version_id"]])
         versions = await self.repo.chunks_for_snapshot(snapshot)
         self.assertIn("居住地址", versions[0]["chunks"][0]["text_content"])
-        await self.repo.release_action(self.supervisor, release["id"], "retire", "教学规则停用")
+        await self.repo.release_action(self.supervisor, release["id"], "retire", "示例规则停用")
         self.assertEqual(len(await self.repo.chunks_for_snapshot(snapshot)), 1, "旧请求仍可引用旧版本")
         async with self.base.engine.begin() as conn:
             after = await self.repo.capture(conn, "residence-permit", "rental-demo")
@@ -98,11 +98,11 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         from pypdf import PdfWriter
         writer = PdfWriter(); writer.add_blank_page(width=200, height=200)
         buffer = BytesIO(); writer.write(buffer)
-        uploaded = await self.upload(buffer.getvalue(), "扫描教学.pdf")
+        uploaded = await self.upload(buffer.getvalue(), "扫描示例.pdf")
         await self.worker.run_once()
         old = await self.repo.get_version(self.owner, uploaded["version_id"])
         self.assertEqual(old["processing_status"], "needs_text")
-        new = await self.repo.new_version(self.owner, old["id"], content="人工补充的教学材料是申请表。", rule_version="DEMO-v2", page=1, expected_latest=1)
+        new = await self.repo.new_version(self.owner, old["id"], content="人工补充的示例材料是申请表。", rule_version="DEMO-v2", page=1, expected_latest=1)
         await self.worker.run_once()
         self.assertEqual((await self.repo.get_version(self.owner, new["version_id"]))["processing_status"], "ready")
         self.assertEqual((await self.repo.get_version(self.owner, old["id"]))["processing_status"], "needs_text")
@@ -111,7 +111,7 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         from zhengwu_precheck.core.errors import AppError
         uploaded = await self.processed()
         mixed = {"user_id": "owner", "grants": self.owner["grants"] + self.supervisor["grants"]}
-        release = await self.repo.create_release(self.owner, title="教学包", version_ids=[uploaded["version_id"]], effective_from=time.time()-1)
+        release = await self.repo.create_release(self.owner, title="示例包", version_ids=[uploaded["version_id"]], effective_from=time.time()-1)
         await self.repo.release_action(self.owner, release["id"], "submit", "提交")
         with self.assertRaises(AppError) as failure:
             await self.repo.release_action(mixed, release["id"], "approve", "本人审核")
@@ -120,9 +120,9 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         await self.repo.release_action(self.supervisor, release["id"], "publish", "发布")
         with self.assertRaises(AppError):
             await self.repo.archive(self.owner, uploaded["id"])
-        new = await self.repo.new_version(self.owner, uploaded["version_id"], content="新的教学申请表包含姓名。", rule_version="DEMO-v2", expected_latest=1)
+        new = await self.repo.new_version(self.owner, uploaded["version_id"], content="新的示例申请表包含姓名。", rule_version="DEMO-v2", expected_latest=1)
         await self.worker.run_once()
-        next_release = await self.repo.create_release(self.owner, title="新教学包", version_ids=[new["version_id"]], effective_from=time.time()-1)
+        next_release = await self.repo.create_release(self.owner, title="新示例包", version_ids=[new["version_id"]], effective_from=time.time()-1)
         await self.repo.release_action(self.owner, next_release["id"], "submit", "提交")
         await self.repo.release_action(self.supervisor, next_release["id"], "approve", "通过")
         with self.assertRaises(AppError) as failure:
@@ -141,7 +141,7 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         stream.set_data(b"% oversized teaching comment\n" + b"x" * (2 * 1024 * 1024))
         page[NameObject("/Contents")] = writer._add_object(stream)
         output = BytesIO(); writer.write(output)
-        item = await self.upload(output.getvalue(), "大页面教学.pdf")
+        item = await self.upload(output.getvalue(), "大页面示例.pdf")
         await self.worker.run_once()
         self.assertEqual((await self.repo.get_version(self.owner, item["version_id"]))["processing_status"], "failed")
         compressed = PdfWriter(); page = compressed.add_blank_page(width=200, height=200)
@@ -151,15 +151,15 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         ref = compressed._add_object(repeated.flate_encode())
         page[NameObject("/Contents")] = ArrayObject([ref] * 16)
         bomb = BytesIO(); compressed.write(bomb)
-        compressed_item = await self.upload(bomb.getvalue(), "重复压缩教学.pdf")
+        compressed_item = await self.upload(bomb.getvalue(), "重复压缩示例.pdf")
         await self.worker.run_once()
         self.assertEqual((await self.repo.get_version(self.owner, compressed_item["version_id"]))["processing_status"], "failed")
         path = Path(self.temp.name) / "timeout.md"
-        path.write_text("仅用于进程超时验证的教学文本。", encoding="utf-8")
+        path.write_text("仅用于进程超时验证的示例文本。", encoding="utf-8")
         with self.assertRaises(AppError) as failure:
             await extract_in_process(path, "timeout.md", timeout=0.000001)
         self.assertEqual(failure.exception.code, "DOCUMENT_EXTRACTION_TIMEOUT")
-        self.assertEqual((await extract_in_process(path, "timeout.md"))[0]["text"], "仅用于进程超时验证的教学文本。")
+        self.assertEqual((await extract_in_process(path, "timeout.md"))[0]["text"], "仅用于进程超时验证的示例文本。")
 
     async def test_extraction_cancellation_reaps_actual_child(self):
         from unittest.mock import patch
@@ -214,7 +214,7 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         base.set_data(b"BT /F1 12 Tf (Teaching requirement one.) Tj ET\n/Big Do\n")
         page[NameObject("/Contents")] = writer._add_object(base)
         output = BytesIO(); writer.write(output)
-        item = await self.upload(output.getvalue(), "含复杂Form的教学.pdf")
+        item = await self.upload(output.getvalue(), "含复杂Form的示例.pdf")
         await self.worker.run_once()
         state = await self.repo.get_version(self.owner, item["version_id"])
         self.assertEqual(state["processing_status"], "failed")
@@ -227,7 +227,7 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         item = await self.processed()
         for version in (" DEMO-v1", "DEMO-v1 "):
             with self.assertRaises(AppError) as caught:
-                await self.repo.new_version(self.owner, item["version_id"], content="教学资料新正文。",
+                await self.repo.new_version(self.owner, item["version_id"], content="示例资料新正文。",
                     rule_version=version, expected_latest=1)
             self.assertEqual(caught.exception.code, "VERSION_CONFLICT")
 
@@ -237,7 +237,7 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         for role, matter in [("window", "residence-permit"), ("owner", "sole-trader-registration")]:
             identity = {"user_id": "other", "grants": [{"role_code": role, "matter_id": matter}]}
             with self.assertRaises(AppError):
-                await self.repo.new_version(identity, uploaded["version_id"], content="越权教学内容。", rule_version="DEMO-v2")
+                await self.repo.new_version(identity, uploaded["version_id"], content="越权示例内容。", rule_version="DEMO-v2")
 
     async def test_expired_claim_is_fenced_and_failed_task_can_retry(self):
         from sqlalchemy import text
@@ -254,7 +254,7 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(failure.exception.code, "JOB_LEASE_LOST")
         await self.worker._process(resumed)
         self.assertEqual((await self.repo.get_version(self.owner, uploaded["version_id"]))["processing_status"], "ready")
-        failed = await self.upload(b"not utf8\xff", "错误教学.md")
+        failed = await self.upload(b"not utf8\xff", "错误示例.md")
         await self.worker.run_once()
         self.assertEqual((await self.repo.get_version(self.owner, failed["version_id"]))["processing_status"], "failed")
         await self.repo.retry(self.owner, failed["version_id"])
@@ -263,7 +263,7 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
     async def test_actual_submitter_and_content_maintainer_cannot_self_review(self):
         from zhengwu_precheck.core.errors import AppError
         uploaded = await self.processed()
-        release = await self.repo.create_release(self.owner, title="教学包", version_ids=[uploaded["version_id"]], effective_from=time.time()-1)
+        release = await self.repo.create_release(self.owner, title="示例包", version_ids=[uploaded["version_id"]], effective_from=time.time()-1)
         submitter = {"user_id": "another", "grants": self.owner["grants"] + self.supervisor["grants"]}
         await self.repo.release_action(submitter, release["id"], "submit", "代为提交")
         with self.assertRaises(AppError) as failure:
@@ -271,9 +271,9 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(failure.exception.code, "SELF_REVIEW_FORBIDDEN")
         await self.repo.release_action(self.supervisor, release["id"], "reject", "需调整")
         content_owner = {"user_id": "author", "grants": self.owner["grants"] + self.supervisor["grants"]}
-        new = await self.repo.new_version(content_owner, uploaded["version_id"], content="另一作者的教学申请表包含地址。", rule_version="DEMO-v2", expected_latest=1)
+        new = await self.repo.new_version(content_owner, uploaded["version_id"], content="另一作者的示例申请表包含地址。", rule_version="DEMO-v2", expected_latest=1)
         await self.worker.run_once()
-        next_release = await self.repo.create_release(self.owner, title="新教学包", version_ids=[new["version_id"]], effective_from=time.time()-1)
+        next_release = await self.repo.create_release(self.owner, title="新示例包", version_ids=[new["version_id"]], effective_from=time.time()-1)
         await self.repo.release_action(self.owner, next_release["id"], "submit", "提交")
         with self.assertRaises(AppError) as failure:
             await self.repo.release_action(content_owner, next_release["id"], "approve", "内容作者自审")
@@ -284,7 +284,7 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
         one, two = await self.processed(), await self.processed()
         releases = []
         for item in [one, two]:
-            release = await self.repo.create_release(self.owner, title="并发教学包", version_ids=[item["version_id"]], effective_from=time.time()-1)
+            release = await self.repo.create_release(self.owner, title="并发示例包", version_ids=[item["version_id"]], effective_from=time.time()-1)
             await self.repo.release_action(self.owner, release["id"], "submit", "提交", expected_revision=1)
             await self.repo.release_action(self.supervisor, release["id"], "approve", "审核", expected_revision=2)
             releases.append(release)
@@ -312,7 +312,7 @@ class KnowledgeTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await conn.execute(text("SELECT version FROM knowledge_schema_versions"))).scalar(), 2)
         from zhengwu_precheck.core.errors import AppError
         with self.assertRaises(AppError):
-            await self.repo.upload(self.owner, title="内部教学", matter_id="residence-permit", scenario_id="rental-demo", kind="workflow", filename="流程.md", source_uri="教学", rule_version="v1", raw=b"fixture", is_teaching=True, visibility="public")
+            await self.repo.upload(self.owner, title="内部示例", matter_id="residence-permit", scenario_id="rental-demo", kind="workflow", filename="流程.md", source_uri="示例", rule_version="v1", raw=b"fixture", is_teaching=True, visibility="public")
 
 
 if __name__ == "__main__":

@@ -59,7 +59,7 @@ class PublishedQATests(unittest.IsolatedAsyncioTestCase):
         if self.malformed:
             return httpx.Response(200, json={"choices": [{"message": {"content": "not valid JSON"}}]})
         source = json.loads(body["messages"][1]["content"])["teaching_sources"][0]
-        quote = "不存在的教学要求可以保证批准。" if self.forge else source["text"]
+        quote = "不存在的示例要求可以保证批准。" if self.forge else source["text"]
         result = {"supported": True, "citations": [{"chunk_id": source["chunk_id"], "quote": quote}]}
         return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps(result, ensure_ascii=False)}}]})
 
@@ -70,18 +70,18 @@ class PublishedQATests(unittest.IsolatedAsyncioTestCase):
         self.env.stop()
         self.temp.cleanup()
 
-    async def uploaded(self, matter="sole-trader-registration", content="教学经营申请表包含经营者姓名和经营场所。", kind="guide", visibility="public"):
+    async def uploaded(self, matter="sole-trader-registration", content="示例经营申请表包含经营者姓名和经营场所。", kind="guide", visibility="public"):
         scenario = "rental-demo" if matter == "residence-permit" else "standard-demo"
-        item = await self.repo.upload(self.owner, title="自编教学指南", matter_id=matter, scenario_id=scenario, kind=kind,
-            filename="发布教学.md", source_uri="自编教学资料", rule_version="DEMO-NEW-1", raw=content.encode(), is_teaching=True, visibility=visibility)
+        item = await self.repo.upload(self.owner, title="自编示例指南", matter_id=matter, scenario_id=scenario, kind=kind,
+            filename="发布示例.md", source_uri="自编示例资料", rule_version="DEMO-NEW-1", raw=content.encode(), is_teaching=True, visibility=visibility)
         await self.app.state.knowledge_service.run_once()
         self.assertEqual((await self.repo.get_version(self.owner, item["version_id"]))["processing_status"], "ready")
         return item
 
     async def published(self, item, start=None, end=None):
-        release = await self.repo.create_release(self.owner, title="教学发布包", version_ids=[item["version_id"]], effective_from=start or time.time()-1, effective_to=end)
+        release = await self.repo.create_release(self.owner, title="示例发布包", version_ids=[item["version_id"]], effective_from=start or time.time()-1, effective_to=end)
         for identity, action in [(self.owner, "submit"), (self.supervisor, "approve"), (self.supervisor, "publish")]:
-            await self.repo.release_action(identity, release["id"], action, "教学验证")
+            await self.repo.release_action(identity, release["id"], action, "示例验证")
         return release
 
     async def test_unpublished_unelapsed_two_matters_and_retired_no_resurrection(self):
@@ -91,7 +91,7 @@ class PublishedQATests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.captured, [], "草稿不得进入模型")
         future = await self.published(item, start=time.time()+3600)
         self.assertEqual(events(await self.post("经营申请表字段", sid))[-1][1]["outcome"], "insufficient_evidence")
-        await self.repo.release_action(self.supervisor, future["id"], "retire", "撤销未来教学包")
+        await self.repo.release_action(self.supervisor, future["id"], "retire", "撤销未来示例包")
         current = await self.uploaded()
         released = await self.published(current)
         response = await self.post("经营申请表字段", sid)
@@ -103,12 +103,12 @@ class PublishedQATests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("_snapshot", response.text)
         self.assertNotIn("prompt_content", response.text)
         res_sid = await self.confirmed()
-        residence = await self.uploaded("residence-permit", "教学居住申请表包含新地址和联系电话。")
+        residence = await self.uploaded("residence-permit", "示例居住申请表包含新地址和联系电话。")
         release = await self.published(residence)
         res_answer = await self.post("申请表字段", res_sid)
         self.assertIn("新地址", res_answer.text)
         self.assertNotIn("经营者", res_answer.text)
-        await self.repo.release_action(self.supervisor, release["id"], "retire", "停用教学依据")
+        await self.repo.release_action(self.supervisor, release["id"], "retire", "停用示例依据")
         self.assertEqual(events(await self.post("申请表字段", res_sid))[-1][1]["outcome"], "insufficient_evidence")
         self.assertNotIn("三个示例字段", (await self.post("申请表字段", res_sid)).text)
         replay_key = str(uuid4())
@@ -119,7 +119,7 @@ class PublishedQATests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.captured), count)
 
     async def test_acceptance_freezes_prompt_and_release_during_queued_request(self):
-        item = await self.uploaded("residence-permit", "冻结教学申请表包含姓名和最新地址。")
+        item = await self.uploaded("residence-permit", "冻结示例申请表包含姓名和最新地址。")
         release = await self.published(item)
         sid = await self.confirmed()
         token = next(c.value for c in self.client.cookies.jar if c.name == "zw_anon")
@@ -127,7 +127,7 @@ class PublishedQATests(unittest.IsolatedAsyncioTestCase):
         turn = await self.app.state.repo.reserve(sid, "申请表字段", str(uuid4()), who, context_factory=self.repo.capture)
         snapshot = turn.pop("_snapshot")
         old_prompt = snapshot["prompt"]
-        new = await self.app.state.prompt_repo.save(self.supervisor, "residence-permit", "新版提示词标识。" + old_prompt["content"], old_prompt["version"], "教学调整")
+        new = await self.app.state.prompt_repo.save(self.supervisor, "residence-permit", "新版提示词标识。" + old_prompt["content"], old_prompt["version"], "示例调整")
         await self.repo.release_action(self.supervisor, release["id"], "retire", "旧包停用")
         await self.repo.archive(self.owner, item["id"])
         result = await self.qa.answer("申请表字段", [], "residence-permit", snapshot=snapshot)
@@ -138,7 +138,7 @@ class PublishedQATests(unittest.IsolatedAsyncioTestCase):
             row = (await conn.execute(text("SELECT * FROM qa_request_snapshots WHERE request_id=:id"), {"id": turn["request_id"]})).mappings().one()
         self.assertEqual(row["prompt_version_id"], old_prompt["id"])
         self.assertEqual(json.loads(row["knowledge_json"])["version_ids"], [item["version_id"]])
-        fresh = await self.uploaded("residence-permit", "新教学申请表包含姓名和联系电话。")
+        fresh = await self.uploaded("residence-permit", "新示例申请表包含姓名和联系电话。")
         await self.published(fresh)
         await self.post("申请表字段", sid)
         self.assertIn("新版提示词标识", self.captured[-1][0]["content"])
@@ -149,7 +149,7 @@ class PublishedQATests(unittest.IsolatedAsyncioTestCase):
 
     async def test_internal_knowledge_conflict_and_missing_evidence_are_auditable(self):
         sid = await self.confirmed()
-        internal = await self.uploaded("residence-permit", "工作人员专用流程不能公开的教学内容。", "workflow", "staff")
+        internal = await self.uploaded("residence-permit", "工作人员专用流程不能公开的示例内容。", "workflow", "staff")
         released = await self.published(internal)
         response = await self.post("工作人员专用流程", sid)
         self.assertEqual(events(response)[-1][1]["outcome"], "insufficient_evidence")
@@ -178,7 +178,7 @@ class PublishedQATests(unittest.IsolatedAsyncioTestCase):
 
     async def test_checksum_and_embedding_revision_fail_closed_and_template_cannot_forge_quote(self):
         sid = await self.confirmed()
-        item = await self.uploaded("residence-permit", "教学申请表只能填写姓名和居住地址。")
+        item = await self.uploaded("residence-permit", "示例申请表只能填写姓名和居住地址。")
         await self.published(item)
         version = await self.repo.get_version(self.owner, item["version_id"])
         with patch.dict(os.environ, {"EMBEDDING_MODEL_REVISION": "changed"}):

@@ -169,7 +169,7 @@ class MaterialRepository:
         result=json.loads(row[0])
         from zhengwu_precheck.core.services.materials import RULES_PATH
         if result.get('teaching_rule_digest')!=hashlib.sha256(RULES_PATH.read_bytes()).hexdigest():
-            raise AppError(409,'RULE_SNAPSHOT_CHANGED','教学规则已变化，请重新确认和预检')
+            raise AppError(409,'RULE_SNAPSHOT_CHANGED','示例规则已变化，请重新确认和预检')
         await self.get_set(user_id,result['material_set_id'])
         return result
 

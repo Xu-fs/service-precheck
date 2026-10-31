@@ -6,7 +6,9 @@
 
 ## 允许的结构
 
-根目录文件限定为 README.md、LICENSE、.gitignore、CHANGELOG.md、CONTRIBUTING.md、requirements.txt 和本文件 AGENTS.md。本文件是用户要求的根目录底层边界文档。
+根目录文件限定为 README.md、LICENSE、.gitignore、CHANGELOG.md、CONTRIBUTING.md、requirements.txt、启动网页.bat 和本文件 AGENTS.md。本文件是用户要求的根目录底层边界文档。
+
+启动网页.bat 是用户授权的 Windows 双击启动入口，具体启动逻辑放在 scripts/。
 
 根目录允许的项目目录及职责：
 

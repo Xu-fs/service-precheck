@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>工单操作提示 · 政务易办</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/css/staff.css">
+</head>
+<body>
+<main class="staff-content">
+  <section class="panel">
+    <h2>工单操作提示</h2>
+    <p>请返回工单列表查看最新状态；登录已过期时，请重新登录。</p>
+    <a class="button-secondary" href="/staff/tickets">返回工单列表</a>
+    <a class="button-secondary" href="/staff/login">重新登录</a>
+  </section>
+  <dialog id="ticket-error-dialog" class="ticket-error-dialog" aria-labelledby="ticket-error-title" aria-describedby="ticket-error-message" open>
+    <h2 id="ticket-error-title">操作未完成</h2>
+    <p id="ticket-error-message">{{ action_error.message }}</p>
+    <form method="dialog"><button class="primary-button" autofocus>知道了</button></form>
+  </dialog>
+</main>
+<script src="/static/js/staff_tickets.js" defer></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-"""工单教学日历：接手按工作日，答复按连续小时，关闭按上海自然日。"""
+"""工单示例日历：接手按工作日，答复按连续小时，关闭按上海自然日。"""
 from datetime import date, datetime, time as daytime, timedelta, timezone
 import json
 import os
@@ -9,7 +9,7 @@ SHANGHAI = timezone(timedelta(hours=8), 'Asia/Shanghai')
 
 
 class WorkCalendar:
-    def __init__(self, holidays=(), workdays=(), name='教学周一至周五（无节假日）'):
+    def __init__(self, holidays=(), workdays=(), name='示例周一至周五（无节假日）'):
         self.holidays = frozenset(date.fromisoformat(v) for v in holidays)
         self.workdays = frozenset(date.fromisoformat(v) for v in workdays)
         if self.holidays & self.workdays:
@@ -27,7 +27,7 @@ class WorkCalendar:
 
     def accept_due(self, created):
         local = datetime.fromtimestamp(created, SHANGHAI)
-        # 教学口径：下一工作日的同一时刻；特殊调休日期优先于周末。
+        # 示例口径：下一工作日的同一时刻；特殊调休日期优先于周末。
         for _ in range(3700):
             local += timedelta(days=1)
             d = local.date()

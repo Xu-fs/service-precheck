@@ -57,8 +57,8 @@ class KnowledgeRouteTests(unittest.IsolatedAsyncioTestCase):
         self.client.headers["X-CSRF-Token"] = self.csrf
 
     def rule(self, **extra):
-        return {"title": "教学规则", "matter_id": "residence-permit", "scenario_id": "rental-demo", "kind": "rule",
-                "rule_version": "DEMO-v1", "source_uri": "自编教学资料", "content": "教学申请表需要填写地址。", "is_teaching": True, **extra}
+        return {"title": "示例规则", "matter_id": "residence-permit", "scenario_id": "rental-demo", "kind": "rule",
+                "rule_version": "DEMO-v1", "source_uri": "自编示例资料", "content": "示例申请表需要填写地址。", "is_teaching": True, **extra}
 
     async def uploaded(self):
         response = await self.client.post("/staff/api/rules", json=self.rule())
@@ -68,7 +68,7 @@ class KnowledgeRouteTests(unittest.IsolatedAsyncioTestCase):
 
     async def release(self, uploaded=None, **extra):
         uploaded = uploaded or await self.uploaded()
-        response = await self.client.post("/staff/api/releases", json={"title": "教学发布包", "version_ids": [uploaded["version_id"]], **extra})
+        response = await self.client.post("/staff/api/releases", json={"title": "示例发布包", "version_ids": [uploaded["version_id"]], **extra})
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()["id"]
 
@@ -95,7 +95,7 @@ class KnowledgeRouteTests(unittest.IsolatedAsyncioTestCase):
         self.client.headers.pop("X-CSRF-Token")
         fields = self.rule(kind="workflow", is_teaching="true", csrf_token=self.csrf)
         fields.pop("content")
-        response = await self.client.post("/staff/api/knowledge/uploads", data=fields, files={"file": ("教学.md", "内部教学流程。".encode(), "text/markdown")})
+        response = await self.client.post("/staff/api/knowledge/uploads", data=fields, files={"file": ("示例.md", "内部示例流程。".encode(), "text/markdown")})
         self.assertEqual(response.status_code, 303, response.text)
         version_id = response.headers["location"].rsplit("/", 1)[1]
         async with self.app.state.repo.engine.connect() as conn:
@@ -107,7 +107,7 @@ class KnowledgeRouteTests(unittest.IsolatedAsyncioTestCase):
     async def test_workflow_public_upload_is_rejected_without_creating_document(self):
         fields = self.rule(kind="workflow", is_teaching="true", visibility="public")
         fields.pop("content")
-        response = await self.client.post("/staff/api/knowledge/uploads", data=fields, files={"file": ("教学.md", "内部教学流程。".encode(), "text/markdown")})
+        response = await self.client.post("/staff/api/knowledge/uploads", data=fields, files={"file": ("示例.md", "内部示例流程。".encode(), "text/markdown")})
         self.assertEqual(response.status_code, 422, response.text)
         async with self.app.state.repo.engine.connect() as conn:
             count = (await conn.execute(text("SELECT COUNT(*) FROM knowledge_documents"))).scalar_one()
@@ -127,22 +127,22 @@ class KnowledgeRouteTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_audit_ssr_shows_frozen_versions_and_does_not_backfill_old_record(self):
         release_id = await self.release()
-        response = await self.client.post(f"/staff/api/releases/{release_id}/submit", json={"comment": "提交教学发布包", "expected_revision": 1})
+        response = await self.client.post(f"/staff/api/releases/{release_id}/submit", json={"comment": "提交示例发布包", "expected_revision": 1})
         self.assertEqual(response.status_code, 200, response.text)
         await self.login("supervisor")
         for action, revision in (("approve", 2), ("publish", 3)):
-            response = await self.client.post(f"/staff/api/releases/{release_id}/{action}", json={"comment": "监督员核对教学版本", "expected_revision": revision})
+            response = await self.client.post(f"/staff/api/releases/{release_id}/{action}", json={"comment": "监督员核对示例版本", "expected_revision": revision})
             self.assertEqual(response.status_code, 200, response.text)
         from zhengwu_precheck.utils.security import digest
         principal = {"user_id": None, "anonymous_hash": digest("audit-route-test"), "key": "anon:" + digest("audit-route-test")}
-        old = await self.app.state.repo.reserve(None, "旧教学问题", str(uuid4()), principal)
-        await self.app.state.repo.finish(old, {"outcome": "insufficient_evidence", "text": "旧教学回答", "citations": []})
+        old = await self.app.state.repo.reserve(None, "旧示例问题", str(uuid4()), principal)
+        await self.app.state.repo.finish(old, {"outcome": "insufficient_evidence", "text": "旧示例回答", "citations": []})
         async with self.app.state.repo.engine.begin() as conn:
             await conn.execute(text("UPDATE conversations SET matter_id='residence-permit',scenario_id='rental-demo' WHERE id=:id"), {"id": old["session_id"]})
             await conn.execute(text("UPDATE messages SET matter_id='residence-permit' WHERE conversation_id=:id"), {"id": old["session_id"]})
-        turn = await self.app.state.repo.reserve(old["session_id"], "新教学问题", str(uuid4()), principal, context_factory=self.app.state.knowledge_repo.capture)
+        turn = await self.app.state.repo.reserve(old["session_id"], "新示例问题", str(uuid4()), principal, context_factory=self.app.state.knowledge_repo.capture)
         snapshot = turn.pop("_snapshot")
-        await self.app.state.repo.finish(turn, {"outcome": "insufficient_evidence", "text": "新教学回答", "citations": []})
+        await self.app.state.repo.finish(turn, {"outcome": "insufficient_evidence", "text": "新示例回答", "citations": []})
         await self.app.state.staff_repo.grant_record("supervisor", old["session_id"], "body", actor="test-fixture")
         response = await self.client.get("/staff/audits/message:" + turn["message_id"])
         self.assertEqual(response.status_code, 200, response.text)
@@ -158,19 +158,19 @@ class KnowledgeRouteTests(unittest.IsolatedAsyncioTestCase):
         uploaded = await self.uploaded()
         url = f"/staff/api/knowledge/{uploaded['id']}/versions/{uploaded['version_id']}/text"
         release_id = await self.release(uploaded)
-        missing = await self.client.post(url, json={"content": "新的教学正文。", "rule_version": "DEMO-v2"})
+        missing = await self.client.post(url, json={"content": "新的示例正文。", "rule_version": "DEMO-v2"})
         self.assertEqual(missing.status_code, 422, missing.text)
         missing = await self.client.post(f"/staff/api/releases/{release_id}/submit", json={"comment": "提交"})
         self.assertEqual(missing.status_code, 422, missing.text)
         for value in (None, "", True, 1.5, {}, [], 0, -1, 2 ** 64):
-            response = await self.client.post(url, json={"content": "新的教学正文。", "rule_version": "DEMO-v2", "expected_latest": value})
+            response = await self.client.post(url, json={"content": "新的示例正文。", "rule_version": "DEMO-v2", "expected_latest": value})
             self.assertEqual(response.status_code, 422, response.text)
             action = await self.client.post(f"/staff/api/releases/{release_id}/submit", json={"comment": "提交", "expected_revision": value})
             self.assertEqual(action.status_code, 422, action.text)
 
     async def test_new_version_parent_match_and_stale_lock_preserve_history(self):
         uploaded = await self.uploaded()
-        payload = {"content": "新的教学正文。", "rule_version": "DEMO-v2", "expected_latest": 1}
+        payload = {"content": "新的示例正文。", "rule_version": "DEMO-v2", "expected_latest": 1}
         wrong = await self.client.post(f"/staff/api/knowledge/wrong-parent/versions/{uploaded['version_id']}/text", json=payload)
         self.assertEqual(wrong.status_code, 404, wrong.text)
         url = f"/staff/api/knowledge/{uploaded['id']}/versions"
@@ -179,7 +179,7 @@ class KnowledgeRouteTests(unittest.IsolatedAsyncioTestCase):
         stale = await self.client.post(url, json={**payload, "rule_version": "DEMO-v3", "base_version_id": uploaded["version_id"]})
         self.assertEqual(stale.status_code, 409, stale.text)
         old = await self.client.get("/staff/knowledge/versions/" + uploaded["version_id"])
-        self.assertIn("教学申请表需要填写地址。", old.text)
+        self.assertIn("示例申请表需要填写地址。", old.text)
         wrong_retry = await self.client.post(f"/staff/api/knowledge/wrong-parent/versions/{uploaded['version_id']}/reprocess", json={})
         self.assertEqual(wrong_retry.status_code, 404, wrong_retry.text)
 
@@ -188,7 +188,7 @@ class KnowledgeRouteTests(unittest.IsolatedAsyncioTestCase):
             response = await self.client.post("/staff/api/rules", json=self.rule(**{field: value}))
             self.assertEqual(response.status_code, 422, (field, response.text))
         for versions in ([{}], [True], [1], [["nested"]], {"id": "bad"}):
-            response = await self.client.post("/staff/api/releases", json={"title": "教学包", "version_ids": versions})
+            response = await self.client.post("/staff/api/releases", json={"title": "示例包", "version_ids": versions})
             self.assertEqual(response.status_code, 422, response.text)
 
     async def test_timezone_offsets_preserved_and_invalid_times_rejected(self):
@@ -200,9 +200,9 @@ class KnowledgeRouteTests(unittest.IsolatedAsyncioTestCase):
         for value in (True, float("inf"), float("nan"), {}, [], "invalid", "999999-01-01"):
             if isinstance(value, float):
                 import json
-                response = await self.client.post("/staff/api/releases", content=json.dumps({"title": "教学包", "version_ids": [uploaded["version_id"]], "effective_from": value}), headers={"Content-Type": "application/json"})
+                response = await self.client.post("/staff/api/releases", content=json.dumps({"title": "示例包", "version_ids": [uploaded["version_id"]], "effective_from": value}), headers={"Content-Type": "application/json"})
             else:
-                response = await self.client.post("/staff/api/releases", json={"title": "教学包", "version_ids": [uploaded["version_id"]], "effective_from": value})
+                response = await self.client.post("/staff/api/releases", json={"title": "示例包", "version_ids": [uploaded["version_id"]], "effective_from": value})
             self.assertEqual(response.status_code, 422, response.text)
 
     async def test_release_menu_entry_and_details_use_same_permission(self):
@@ -220,17 +220,17 @@ class KnowledgeRouteTests(unittest.IsolatedAsyncioTestCase):
     async def test_release_read_scope_not_combined_with_hotline_scope(self):
         await self.app.state.staff_repo.grant_role("owner", "owner", "sole-trader-registration", actor="test-fixture")
         await self.login("owner")
-        response = await self.client.post("/staff/api/rules", json=self.rule(title="工商教学草稿", matter_id="sole-trader-registration", scenario_id="standard-demo"))
+        response = await self.client.post("/staff/api/rules", json=self.rule(title="工商示例草稿", matter_id="sole-trader-registration", scenario_id="standard-demo"))
         self.assertEqual(response.status_code, 200, response.text)
         await self.app.state.knowledge_service.run_once()
-        release_id = await self.release(response.json(), title="工商教学包")
+        release_id = await self.release(response.json(), title="工商示例包")
         await self.app.state.staff_repo.revoke_role("owner", "owner", "sole-trader-registration", actor="test-fixture")
         await self.app.state.staff_repo.grant_role("owner", "hotline", "sole-trader-registration", actor="test-fixture")
         await self.login("owner")
         page = await self.client.get("/staff/reviews")
         self.assertEqual(page.status_code, 200, page.text)
-        self.assertNotIn("工商教学包", page.text)
-        self.assertNotIn("工商教学草稿", page.text)
+        self.assertNotIn("工商示例包", page.text)
+        self.assertNotIn("工商示例草稿", page.text)
         self.assertEqual((await self.client.get("/staff/reviews/" + release_id)).status_code, 404)
 
     async def test_window_cannot_modify_and_other_scope_cannot_read(self):
@@ -247,17 +247,17 @@ class KnowledgeRouteTests(unittest.IsolatedAsyncioTestCase):
         uploaded = await self.uploaded()
         second = await self.uploaded()
         self.client.headers.pop("X-CSRF-Token")
-        response = await self.client.post("/staff/api/releases", data={"title": "表单教学包", "version_ids": [uploaded["version_id"], second["version_id"]], "csrf_token": self.csrf})
+        response = await self.client.post("/staff/api/releases", data={"title": "表单示例包", "version_ids": [uploaded["version_id"], second["version_id"]], "csrf_token": self.csrf})
         self.assertEqual(response.status_code, 303, response.text)
         location = response.headers["location"]
         page = await self.client.get(location)
         self.assertIn('name="expected_revision" value="1"', page.text)
         self.assertEqual(page.text.count('/staff/knowledge/versions/'), 2)
-        missing = await self.client.post("/staff/api/releases/" + location.rsplit("/", 1)[1] + "/submit", data={"csrf_token": self.csrf, "comment": "教学提交"})
+        missing = await self.client.post("/staff/api/releases/" + location.rsplit("/", 1)[1] + "/submit", data={"csrf_token": self.csrf, "comment": "示例提交"})
         self.assertEqual(missing.status_code, 422, missing.text)
-        response = await self.client.post("/staff/api/releases/" + location.rsplit("/", 1)[1] + "/submit", data={"csrf_token": self.csrf, "expected_revision": "1", "comment": "教学提交"})
+        response = await self.client.post("/staff/api/releases/" + location.rsplit("/", 1)[1] + "/submit", data={"csrf_token": self.csrf, "expected_revision": "1", "comment": "示例提交"})
         self.assertEqual(response.status_code, 303, response.text)
-        stale = await self.client.post("/staff/api/releases/" + location.rsplit("/", 1)[1] + "/submit", data={"csrf_token": self.csrf, "expected_revision": "1", "comment": "重复教学提交"})
+        stale = await self.client.post("/staff/api/releases/" + location.rsplit("/", 1)[1] + "/submit", data={"csrf_token": self.csrf, "expected_revision": "1", "comment": "重复示例提交"})
         self.assertEqual(stale.status_code, 409, stale.text)
 
 

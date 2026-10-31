@@ -92,18 +92,18 @@ async def recovery_demo(output):
                 version = await state.knowledge_repo.get_version(owner, version_id)
                 if version['processing_status'] == 'ready':
                     return version
-                require(version['processing_status'] != 'failed' and time.monotonic() < deadline, '教学索引处理')
+                require(version['processing_status'] != 'failed' and time.monotonic() < deadline, '示例索引处理')
                 await asyncio.sleep(.05)
 
         async def publish(version_id, title):
             release = await state.knowledge_repo.create_release(owner, title=title, version_ids=[version_id], effective_from=time.time()-1)
             await state.knowledge_repo.release_action(owner, release['id'], 'submit', '虚构演练提交')
-            await state.knowledge_repo.release_action(supervisor, release['id'], 'approve', '独立教学复核')
+            await state.knowledge_repo.release_action(supervisor, release['id'], 'approve', '独立示例复核')
             await state.knowledge_repo.release_action(supervisor, release['id'], 'publish', '仅本地虚构演练')
             return release
 
-        guide_text = '虚构恢复演练教学规则：申请表需要填写姓名。不代表实际政策。'
-        source = await state.knowledge_repo.upload(owner, title='虚构恢复教学指南', matter_id='residence-permit',
+        guide_text = '虚构恢复演练示例规则：申请表需要填写姓名。不代表实际政策。'
+        source = await state.knowledge_repo.upload(owner, title='虚构恢复示例指南', matter_id='residence-permit',
             scenario_id='rental-demo', kind='guide', filename='fictional-recovery.md', source_uri='本地虚构演练',
             rule_version='fictional-recovery-v1', raw=guide_text.encode('utf-8'), is_teaching=True)
         await wait_ready(source['version_id'])
@@ -124,7 +124,7 @@ async def recovery_demo(output):
             prompt_before['version']+1, '恢复追加新版本，不覆盖历史')
         require(prompt_restored['content'] == prompt_before['content'], '提示词恢复内容')
         case = await state.agent_service.create_case({'user_id':uid})
-        material = await state.material_repo.store(uid, case['case_id'], '虚构教学材料.png', image, True)
+        material = await state.material_repo.store(uid, case['case_id'], '虚构示例材料.png', image, True)
         draft = await state.agent_repo.create_draft(uid, dict(title='虚构恢复咨询', content='仅用于本地恢复演练',
             matter_id='residence-permit', scenario_id='rental-demo', case_id=case['case_id'],
             shared_material_ids=[material['id']], shared_material_versions=[

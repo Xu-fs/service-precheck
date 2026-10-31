@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 from zhengwu_precheck.api.staff_dependencies import staff_identity, staff_csrf, require_permission
 from zhengwu_precheck.core.errors import AppError
-from zhengwu_precheck.core.staff_permissions import MODULES, allows, public_identity
+from zhengwu_precheck.core.staff_permissions import workspace_context
 from zhengwu_precheck.utils.security import digest
 from zhengwu_precheck.infrastructure.audit_repository import FLAGS, DECISIONS
 
@@ -13,7 +13,7 @@ router = APIRouter(prefix='/staff')
 async def render(request, template, **context):
     identity = await require_permission(request, 'audit.review')
     return request.app.state.templates.TemplateResponse(request=request, name=template, context={
-        'identity':public_identity(identity), 'modules':[m for m in MODULES if allows(identity['grants'], m['permission'])],
+        **workspace_context(identity),
         'csrf_token':digest('staff-csrf:' + request.cookies.get('zw_staff_csrf', '')),
         'module_name':'对话与预检审计', 'flag_options':FLAGS, 'decision_options':DECISIONS, **context})
 

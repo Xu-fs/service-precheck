@@ -31,7 +31,7 @@ class AgentRouteTests(unittest.IsolatedAsyncioTestCase):
         self.tmp.cleanup()
 
     async def test_http_preview_confirm_submit_and_raw_bypass(self):
-        payload=dict(title='教学咨询',content='仅共享这个虚构问题',matter_id='residence-permit',
+        payload=dict(title='示例咨询',content='仅共享这个虚构问题',matter_id='residence-permit',
                      scenario_id='rental-demo',shared_material_ids=[])
         raw=await self.client.post('/tickets',json={**payload,'idempotency_key':'raw-operation-1'})
         self.assertEqual(raw.status_code,409,raw.text)
@@ -69,7 +69,7 @@ class AgentRouteTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_native_form_retry_returns_original_ticket(self):
         draft=(await self.client.post('/agent/drafts',json={
-            'title':'虚构教学重试','content':'提交响应丢失后核对原结果',
+            'title':'虚构示例重试','content':'提交响应丢失后核对原结果',
             'matter_id':'residence-permit','scenario_id':'rental-demo','shared_material_ids':[]})).json()
         data={'csrf_token':self.client.headers['X-CSRF-Token'], 'draft_version':str(draft['version']),
               'draft_hash':draft['content_hash'],'idempotency_key':'native-form-retry-1'}
@@ -84,19 +84,19 @@ class AgentRouteTests(unittest.IsolatedAsyncioTestCase):
     async def test_editing_exception_draft_preserves_selected_exception(self):
         case=(await self.client.post('/agent/cases',json={})).json()['case_id']
         exception=(await self.client.post(f'/agent/cases/{case}/exceptions',json={
-            'kind':'system_unavailable','detail':'虚构教学服务不可用，请人工协助'})).json()
+            'kind':'system_unavailable','detail':'虚构示例服务不可用，请人工协助'})).json()
         prepared=(await self.client.post(f'/agent/cases/{case}/exception-draft',json={
-            'exception_id':exception['id'],'summary':'虚构教学人工核验','expected_case_version':0})).json()
+            'exception_id':exception['id'],'summary':'虚构示例人工核验','expected_case_version':0})).json()
         draft=(await self.client.get('/agent/drafts/'+prepared['data']['draft_id'])).json()
         response=await self.client.post('/tickets/drafts/'+draft['id']+'/edit',data={
             'csrf_token':self.client.headers['X-CSRF-Token'],'draft_version':str(draft['version']),
             'idempotency_key':'edit-exception-draft-1',
-            'title':'更新后的虚构教学标题','content':'只修改正文，应保留已选择的异常关联'})
+            'title':'更新后的虚构示例标题','content':'只修改正文，应保留已选择的异常关联'})
         self.assertEqual(response.status_code,303,response.text)
         edited=(await self.client.get('/agent/drafts/'+draft['id'])).json()
         self.assertEqual(edited['data']['exception_ids'],[exception['id']])
         preview=await self.client.get('/my/ticket-drafts/'+draft['id'])
-        self.assertIn('虚构教学服务不可用，请人工协助',preview.text)
+        self.assertIn('虚构示例服务不可用，请人工协助',preview.text)
 
     async def test_real_handlers_prepare_confirm_create_query(self):
         case=(await self.client.post('/agent/cases',json={})).json()['case_id']
@@ -111,8 +111,8 @@ class AgentRouteTests(unittest.IsolatedAsyncioTestCase):
                 used=True
                 return {'tool_calls':[{'id':'one','name':name,'arguments':args}]}
             return step
-        result=await self.app.state.agent_service.run('整理教学人工咨询',case,who,planner('prepare_ticket_draft',{
-            'case_id':case,'purpose':'ordinary_consultation','summary':'虚构教学咨询问题','expected_case_version':0}))
+        result=await self.app.state.agent_service.run('整理示例人工咨询',case,who,planner('prepare_ticket_draft',{
+            'case_id':case,'purpose':'ordinary_consultation','summary':'虚构示例咨询问题','expected_case_version':0}))
         self.assertEqual(result['status'],'needs_confirmation',result)
         draft=result['result']['data']
         confirmation=(await self.client.post('/agent/drafts/'+draft['draft_id']+'/confirm',json={'draft_version':draft['draft_version']})).json()
