@@ -1,2 +1,16 @@
-# 当前骨架仅使用 Python 标准库，无第三方依赖。
-# 实现业务功能时在此维护实际依赖。
+# 命令行原型与办事人问答网页共用依赖；Python 3.11+。
+faiss-cpu>=1.8,<2
+numpy>=1.26,<3
+rank-bm25==0.2.2
+httpx>=0.27,<0.29
+# 办事人问答网页；浏览器验证用playwright单独安装，不纳入运行依赖。
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+sqlalchemy>=2.0,<3
+aiosqlite>=0.20,<1
+jinja2>=3.1.6,<4
+# 工作人员后台第一批：JWT与服务端表单。
+PyJWT>=2.10,<3
+python-multipart>=0.0.20,<1
+# 知识库文本PDF提取；扫描PDF不提供虚假OCR结果。
+pypdf>=6.21.4,<7

@@ -1,0 +1,22 @@
+{% extends "staff/base.html" %}
+{% block content %}
+<h1>对话与预检审计</h1>
+<p>仅展示事项范围内、已显式授权的真实对话，以及获准查看的拒绝访问事件。匿名记录以会话号标识。</p>
+<form method="get" action="/staff/audits" class="filters">
+  <label>记录类型 <select name="kind"><option value="">全部已接入记录</option>{% for value,label in [('message','对话回答'),('event','安全事件'),('precheck','预检记录')] %}<option value="{{ value }}" {% if filters.get('kind') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <label>办事人账号 <input name="username" value="{{ filters.get('username','') }}"></label>
+  <label>办事人编号 <input name="user_id" value="{{ filters.get('user_id','') }}"></label>
+  <label>事项 <select name="matter_id"><option value="">已授权事项</option>{% for value,label in [('residence-permit','居住证申领'),('sole-trader-registration','个体工商户设立登记')] %}<option value="{{ value }}" {% if filters.get('matter_id') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <label>开始日期 <input type="date" name="start" value="{{ filters.get('start','') }}"></label>
+  <label>结束日期 <input type="date" name="end" value="{{ filters.get('end','') }}"></label>
+  <label>风险类别 <select name="flag"><option value="">全部</option>{% for value,label in flag_options.items() %}<option value="{{ value }}" {% if filters.get('flag') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  <button type="submit">筛选</button>
+</form>
+{% if filters.get('kind') == 'precheck' %}<p class="notice">预检记录尚未接入。当前没有材料预检引擎或预检原始记录。</p>{% endif %}
+<p>授权范围内共 {{ records.total }} 条；第 {{ records.page }} 页。</p>
+<table><thead><tr><th>记录</th><th>类型</th><th>办事人</th><th>事项快照</th><th>原始状态</th><th>操作</th></tr></thead><tbody>
+{% for item in records['items'] %}<tr><td>{{ item.id }}</td><td>{{ '对话回答' if item.kind == 'message' else '拒绝访问事件' }}</td><td>{{ item.person_label }}</td><td>{{ item.matter_id or '未关联可见事项' }}</td><td>{{ item.outcome }}</td><td><a href="/staff/audits/{{ item.id }}">查看与复核</a></td></tr>
+{% else %}<tr><td colspan="6">没有符合条件且获授权的记录。</td></tr>{% endfor %}
+</tbody></table>
+<nav aria-label="分页">{% for link in pagination %}<a href="{{ link.url }}">第 {{ link.page }} 页</a> {% endfor %}</nav>
+{% endblock %}

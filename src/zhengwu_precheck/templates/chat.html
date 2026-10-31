@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="description" content="政务易办教学指南咨询，回答附带原文依据。">
+  <title>办事指南咨询 · 政务易办</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/css/chat.css">
+  <script type="module" src="/static/js/chat.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="政务易办首页"><span class="brand-mark" aria-hidden="true">易</span><span>政务易办<small>办事指南咨询</small></span></a>
+    <div class="account"><span id="identity">公开咨询无需登录</span><button id="login-open" class="text-button" type="button">登录</button><button id="logout" class="text-button" type="button" hidden>退出登录</button></div>
+  </header>
+  <div class="workspace">
+    <aside class="sidebar" aria-label="咨询说明">
+      <div class="sidebar-top"><span class="eyebrow">办事前，先有依据</span><h1>把材料准备<br>问清楚。</h1><p>从指南中找答案，<br>每条回答都可以核对来源。</p></div>
+      <div class="matter-summary"><span class="section-label">本次咨询</span><strong id="matter-label">尚未确认事项</strong><button id="change-matter" class="sidebar-button" type="button">选择或切换事项</button></div>
+      <div class="boundary"><strong>教学环境</strong><p>仅使用虚构教学指南。请勿输入身份证号、手机号等个人信息。</p><p>咨询不代表正式申请、受理或审批。</p></div>
+    </aside>
+    <main class="chat-panel">
+      <div class="chat-toolbar"><div><strong>指南问答</strong><span class="teaching-badge">教学资料</span></div><button id="new-chat" class="text-button" type="button">新建咨询</button></div>
+      <div id="scroll-area" class="scroll-area">
+        <section id="welcome" class="welcome">
+          <div class="guide-symbol" aria-hidden="true"><span></span><span></span><span></span></div>
+          <h2>你想了解哪项办事材料？</h2>
+          <p>先确认事项，再从对应指南中寻找答案。<br>没有依据时，我们会明确告诉你。</p>
+          <div class="suggestions"><button type="button" data-question="教学申请表有哪些字段？">教学申请表有哪些字段？</button><button type="button" data-question="教学居住证明可以用什么样例？">教学居住证明可以用什么样例？</button></div>
+          <p class="scope-note">目前已配置居住证申领教学指南。<br>个体工商户设立登记指南待配置。</p>
+        </section>
+        <button id="load-older" type="button" class="text-button older" hidden>加载更早消息</button>
+        <div id="messages" class="messages" aria-label="咨询消息"></div>
+      </div>
+      <div class="composer-area">
+        <p id="global-status" class="global-status" role="status" aria-live="polite"></p>
+        <form id="chat-form" class="composer">
+          <label class="sr-only" for="question">你的问题</label>
+          <textarea id="question" name="question" maxlength="2000" rows="2" placeholder="描述你想了解的材料要求……" required></textarea>
+          <div class="composer-controls"><span id="counter">0 / 2000</span><div><button id="stop" class="secondary-button" type="button" hidden>停止回答</button><button id="send" class="primary-button" type="submit">发送问题 <span aria-hidden="true">↑</span></button></div></div>
+        </form>
+        <p class="footer-note">回答依据教学指南；实际办理请以受理部门现行规定为准。<a href="/my/tickets">我的人工工单与站内消息</a>。材料上传与预检暂未开放。</p>
+      </div>
+    </main>
+  </div>
+  <dialog id="login-dialog" aria-labelledby="login-title">
+    <form id="login-form"><button id="login-close" type="button" class="dialog-close" aria-label="关闭登录窗口">×</button><h2 id="login-title">登录个人咨询</h2><p>使用维护人员创建的独立账号。公开咨询仍可免登录。</p><label for="username">账号</label><input id="username" name="username" autocomplete="username" maxlength="80" required><label for="password">密码</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="256" required><p id="login-error" class="error-text" role="alert"></p><button class="primary-button" type="submit">登录</button></form>
+  </dialog>
+</body>
+</html>

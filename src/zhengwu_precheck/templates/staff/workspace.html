@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ module.name if module else '我的工作台' }} · 政务易办</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/static/css/staff.css"></head>
+<body>
+<div class="staff-shell">
+  <aside class="staff-sidebar"><a class="staff-brand" href="/staff"><span class="mark">易</span><span>政务易办<small>工作人员后台</small></span></a><span class="nav-label">工作空间</span><nav aria-label="后台导航"><a href="/staff" {% if not module %}aria-current="page"{% endif %}><span>我的工作台</span></a>{% for item in modules %}<a href="/staff/{{ item.slug }}" {% if module and module.slug == item.slug %}aria-current="page"{% endif %}><span>{{ item.name }}</span><small>第{{ item.batch }}批</small></a>{% endfor %}</nav><div class="sidebar-foot"><strong>岗位授权访问</strong><p>可见菜单不代表已获全部记录权限。<br>具体操作仍由服务端逐项校验。</p><a href="/">办事人咨询入口</a></div></aside>
+  <div class="staff-main">
+    <header class="staff-header"><span>服务协同工作空间 <small>教学环境</small></span><div class="user-tools"><strong>{{ identity.username }}</strong><form action="/staff/api/auth/refresh" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit" class="link-button">续期登录</button></form><form action="/staff/api/auth/logout" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit" class="link-button">退出登录</button></form></div></header>
+    <main class="staff-content">
+      <div class="page-heading"><div><p class="section-kicker">{{ '功能范围' if module else '当前会话' }}</p><h1>{{ module.name if module else '我的工作台' }}</h1><p class="muted">{{ '此页面展示后续批次安排，业务操作尚未开放。' if module else '查看你的岗位、事项范围与当前开放的功能。' }}</p></div><span class="batch-badge">身份权限 · 知识与审计</span></div>
+      {% if module %}<section class="panel upcoming"><span class="status-pill">待后续批次开放</span><h2>{{ module.name }}将在第{{ module.batch }}批实现</h2><p>本页仅说明已确认的范围，没有上传、发布、审核或工单处理的成功提交功能。</p><p>当前后台已经校验你的岗位权限；具体记录仍需事项范围和处理关系授权。</p><a href="/staff" class="button-secondary">返回工作台</a></section>{% else %}
+      <section class="summary-row" aria-label="授权概览"><div><span>已授权岗位范围</span><strong>{{ identity.grants|length }} <small>条</small></strong></div><div><span>记录访问方式</span><strong class="summary-text">逐条授权</strong></div><div><span>业务模块状态</span><strong class="summary-text">分批开放</strong></div></section>
+      <section class="panel"><div class="panel-heading"><div><h2>我的岗位与事项范围</h2><p>每条授权同时限定可执行动作及适用事项。</p></div><span class="status-pill">当前授权</span></div><div class="table-scroll"><table><thead><tr><th>岗位</th><th>事项范围</th><th>授权说明</th></tr></thead><tbody>{% for grant in identity.grants %}<tr><td><strong>{{ grant.role_name }}</strong></td><td>{{ grant.matter_name }}</td><td>记录访问另需授权；岗位变更后需重新登录</td></tr>{% endfor %}</tbody></table></div></section>
+      <div class="work-columns"><section class="panel"><h2>本批已开放</h2><ul class="feature-list"><li><span class="check">✓</span><div><strong>独立工作人员登录</strong><p>短期登录、会话续期与主动退出。</p></div></li><li><span class="check">✓</span><div><strong>岗位和事项范围校验</strong><p>服务端核验权限，禁止跨范围拼接授权。</p></div></li><li><span class="check">✓</span><div><strong>已有记录授权边界</strong><p>摘要和正文分别检查，访问操作留痕。</p></div></li></ul>{% if system_health %}<a href="/staff/api/system/status" class="technical-link">查看技术运行状态</a>{% endif %}</section><section class="panel"><h2>业务功能安排</h2><ul class="batch-list"><li><span>第二批</span><div><strong>知识与规则发布 · 已开放</strong><p>文件处理、草稿维护、监督员审核；仅显示授权事项。</p></div></li><li><span>第三批</span><div><strong>提示词与审计 · 已开放</strong><p>模板版本、真实对话授权查询和人工复核；预检未接入。</p></div></li><li><span>第四批</span><div><strong>工单服务协同 · 已开放</strong><p>窗口接收、交接确认、回复和留痕。</p></div></li></ul></section></div>
+      <div class="notice boundary-note">知识规则发布、提示词版本和真实对话审计已按岗位开放；工单接收、转派确认、回复和站内提醒已开放；材料识别与自动预检尚未实现。热线人员默认不能查看证件原图，平台工程师默认不能查看材料或对话正文。界面不提供审批结论。</div>
+      {% endif %}
+    </main><footer class="staff-footer">政务易办教学环境　所有权限以服务端授权记录为准</footer>
+  </div>
+</div>
+</body></html>

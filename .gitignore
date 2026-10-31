@@ -21,6 +21,8 @@ dist/
 config/local.*
 # Runtime files
 *.log
+# WorkBuddy project-level local memory is tool-managed, not application source.
+.workbuddy-ai/
 # Editor and operating-system files
 .vscode/
 .idea/
