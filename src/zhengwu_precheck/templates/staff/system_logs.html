@@ -1,0 +1,38 @@
+{% extends "staff/base.html" %}
+{% block content %}
+<section class="panel">
+  <div class="panel-heading"><div><h2>{{ '跟进处理失败与后台异常' if failures else '定位请求与服务错误' }}</h2><p>{{ '查询问答、知识处理的失败任务，以及后台工作进程异常。' if failures else '查看请求完成后的技术记录；时间均为北京时间。' }}</p></div><a href="{{ '/staff/logs?level=error' if failures else '/staff/failures' }}">{{ '查看错误日志' if failures else '查看失败任务' }}</a></div>
+  <form method="get" class="filters" action="{{ '/staff/failures' if failures else '/staff/logs' }}" aria-label="技术记录筛选">
+    <label>开始日期 <input type="date" name="start" value="{{ filters.get('start','') }}"></label>
+    <label>结束日期 <input type="date" name="end" value="{{ filters.get('end','') }}"></label>
+    {% if failures %}<label>任务来源 <select name="task_type" aria-label="任务来源"><option value="">全部来源</option>{% for key,name in task_names.items() %}<option value="{{ key }}"{% if filters.get('task_type') == key %} selected{% endif %}>{{ name }}</option>{% endfor %}</select></label>
+    {% else %}<label>日志级别 <select name="level" aria-label="日志级别"><option value="">全部级别</option>{% for key,name in level_names.items() %}<option value="{{ key }}"{% if filters.get('level') == key %} selected{% endif %}>{{ name }}</option>{% endfor %}</select></label>{% endif %}
+    <label>错误码 <input name="error_code" value="{{ filters.get('error_code','') }}" placeholder="例如 MODEL_TIMEOUT" maxlength="64"></label>
+    <label>请求编号 <input name="request_id" value="{{ filters.get('request_id','') }}" placeholder="完整请求编号" maxlength="36"></label>
+    {% if failures %}<label>任务编号 <input name="task_id" value="{{ filters.get('task_id','') }}" maxlength="36"></label>{% endif %}
+    <label>每页条数 <select name="page_size" aria-label="每页条数">{% for size in [25,50,100] %}<option value="{{ size }}"{% if filters.get('page_size','25') == size|string %} selected{% endif %}>{{ size }}</option>{% endfor %}</select></label>
+    <button type="submit">查询</button><a class="button-secondary" href="{{ '/staff/failures' if failures else '/staff/logs' }}">重置筛选</a>
+  </form>
+</section>
+<section class="panel technical-records">
+  <div class="panel-heading"><h2>查询结果</h2><span class="muted">共 {{ records.total }} 条 · 第 {{ records.page }} / {{ total_pages }} 页</span></div>
+  <div class="table-scroll"><table>
+    <thead><tr><th>时间（北京）</th>{% if failures %}<th>任务来源 / 状态</th><th>任务编号 / 请求编号</th><th>处理信息</th>{% else %}<th>级别 / 事件</th><th>请求路由 / 编号</th><th>状态 / 耗时</th>{% endif %}<th>错误码</th></tr></thead>
+    <tbody>{% for item in records['items'] %}<tr>
+      <td><time>{{ display_time(item.occurred_at) }}</time></td>
+      {% if failures %}
+      <td>{{ task_names.get(item.task_type,item.task_type) }}<small class="block">{{ '后台异常（保留原队列状态）' if item.status == 'worker_error' else '处理失败' }}</small></td>
+      <td><code>{{ item.task_id }}</code>{% if item.request_id %}<small class="block">请求：<a href="/staff/logs?request_id={{ item.request_id }}">{{ item.request_id }}</a></small>{% endif %}</td>
+      <td>{% if item.attempts is not none %}已尝试 {{ item.attempts }} 次{% else %}—{% endif %}{% if item.stage %}<small class="block">阶段：{{ item.stage }}</small>{% endif %}</td>
+      {% else %}
+      <td><span class="log-level log-level-{{ item.level }}">{{ level_names.get(item.level,item.level) }}</span><small class="block">{{ {'request':'请求完成','task_failed':'后台任务失败','started':'服务启动','stopped':'服务停止'}.get(item.event,item.event) }}</small></td>
+      <td>{{ item.method or '' }} {{ item.route or ('未匹配路由' if item.event == 'request' else '') }}{% if item.request_id %}<small class="block"><code>{{ item.request_id }}</code></small>{% endif %}{% if item.task_type %}<small class="block">{{ task_names.get(item.task_type,item.task_type) }}{% if item.task_id %} · {{ item.task_id }}{% endif %}</small>{% endif %}</td>
+      <td>{{ item.status_code if item.status_code is not none else '—' }}<small class="block">{{ item.duration_ms if item.duration_ms is not none else '—' }} ms</small></td>
+      {% endif %}
+      <td><code>{{ item.error_code or '—' }}</code></td>
+    </tr>{% else %}<tr><td colspan="5">{{ '当前筛选范围内暂无失败任务记录。' if failures else '当前筛选范围内暂无运行日志。' }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <nav class="log-pagination" aria-label="记录分页">{% for link in pagination %}<a class="button-secondary" href="{{ link.url }}">{{ '上一页' if link.page < records.page else '下一页' }}</a>{% endfor %}</nav>
+</section>
+<p class="muted">仅展示技术字段。{{ '后台异常记录不代表队列任务已终止；处理失败记录来自任务当前状态。' if failures else '静态资源不记入此列表；流式回答的失败以错误码为准。日志保留近30天，最多20000条。' }}</p>
+{% endblock %}

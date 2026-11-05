@@ -31,6 +31,8 @@ $env:PYTHONPATH = (Resolve-Path src).Path
 
 启动后访问 http://127.0.0.1:8000 。上述 PYTHONPATH 设置只影响当前终端。网页可先进行匿名事项确认；实际指南问答需要配置获批准的LLM及嵌入服务。
 
+聊天页每次打开、刷新或新建咨询都会显示欢迎语及两个预设工单案例入口，清空当前聊天界面并重新选择事项，不自动加载旧消息。登录状态、已提交工单及后台记录按原规则保留；同一页面内可连续咨询。
+
 模型配置沿用阶段1环境变量：`LLM_PROVIDER`、`LLM_BASE_URL`、`LLM_MODEL`、`LLM_API_KEY`、`EMBEDDING_BASE_URL`、`EMBEDDING_MODEL`、`EMBEDDING_API_KEY`。运行数据库和索引默认保存在仓库外系统临时目录的 `zhengwu-web/`，需要稳定保存时设置仓库外的 `ZHENGWU_RUNTIME_DIR`。
 
 完整启动、账号创建、部署限制和实际目录树见 [办事人问答入口运行说明](docs/办事人问答入口运行说明.md)。

@@ -11,7 +11,7 @@ import httpx
 from zhengwu_precheck.api.dependencies import csrf, principal
 from zhengwu_precheck.api.schemas import ChatInput
 from zhengwu_precheck.core.errors import AppError
-from zhengwu_precheck.core.services.chat import MATTERS, fallback, needs_confirmation
+from zhengwu_precheck.core.services.chat import MATTERS, fallback, needs_confirmation, outside_preset_reply
 from zhengwu_precheck.core.services.public_services import public_service_reply
 from zhengwu_precheck.utils.security import digest
 from zhengwu_precheck.utils.sse import encode_event
@@ -45,7 +45,7 @@ async def chat(body: ChatInput, request: Request, who=Depends(principal)):
             raise AppError(409, "REQUEST_IN_PROGRESS" if existing["status"] == "pending" else "REQUEST_RETRY_REQUIRED",
                            "请求处理中，请查询消息状态" if existing["status"] == "pending" else "上次请求未完成，请使用新的请求标识重试", True)
     else:
-        guide_result = public_service_reply(body.question)
+        guide_result = public_service_reply(body.question) or outside_preset_reply(conversation, body.question)
         confirm = guide_result is None and needs_confirmation(conversation, body.question)
         knowledge_repo = request.app.state.knowledge_repo
         if not confirm and guide_result is None:
@@ -57,6 +57,8 @@ async def chat(body: ChatInput, request: Request, who=Depends(principal)):
         turn = await repo.reserve(sid, body.question, key, who, expected_conversation=conversation,
                                   context_factory=None if confirm or guide_result is not None else knowledge_repo.capture)
         snapshot = turn.pop("_snapshot", None)  # 绝不经**turn把内部模板正文送往浏览器。
+
+    request.state.request_id = turn["request_id"]
 
     async def stream():
         seq, task = 0, None
@@ -136,6 +138,7 @@ async def chat(body: ChatInput, request: Request, who=Depends(principal)):
                 error = AppError(504, "MODEL_TIMEOUT", "回答服务暂时超时，请稍后重试", True)
             elif not isinstance(error, AppError):
                 error = AppError(500, "CHAT_FAILED", "回答暂时未能完成，请稍后重试", True)
+            request.state.error_code = error.code
             with anyio.CancelScope(shield=True):
                 await repo.fail(turn, error.code)
             yield emit("error", {"code": error.code, "message": error.message + '；可进入人工咨询继续处理。', "retryable": error.retryable})

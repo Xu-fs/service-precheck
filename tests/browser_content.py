@@ -185,7 +185,7 @@ with sync_playwright() as p:
         passed.append("办事人真实检索与引用校验返回上传文件及发布版本")
 
         owner.goto(URL + "/staff/knowledge/versions/" + version_id)
-        edited_id = draft_text(owner, "BROWSER-DEMO-2026-02", "示例蓝色回执的新草稿只包含示例日期。")
+        edited_id = draft_text(owner, "BROWSER-DEMO-2026-03", "示例蓝色回执的新草稿只包含示例日期。")
         processing(owner, "索引就绪")
         assert edited_id != version_id
         owner.goto(URL + "/staff/knowledge/versions/" + version_id)
@@ -193,11 +193,12 @@ with sync_playwright() as p:
         expect(owner.locator("pre").first).to_contain_text(QUOTE)
         ask(citizen, "草稿编辑后示例蓝色回执有哪些字段？")
         citizen.reload(); citizen.wait_for_load_state("networkidle")
-        expect(citizen.locator(".message-content").last).to_have_text(QUOTE)
+        expect(citizen.get_by_role("heading", name="欢迎来到政务易办", exact=True)).to_be_visible()
+        expect(citizen.locator(".message-content")).to_have_count(0)
         persisted = citizen_context.request.get(URL + "/sessions/" + session_id + "/messages").json()["items"]
         unchanged = next(item for item in persisted if item["id"] == original_answer["id"])
         assert unchanged["citations"] == original_answer["citations"]
-        passed.append("新草稿不覆盖已发布正文或历史引用且刷新可恢复")
+        passed.append("新草稿不覆盖已发布正文或历史引用；刷新重新开始咨询")
 
         # 空白PDF用内存生成，逐页人工补充；不进行OCR或向外部发送材料。
         writer = PdfWriter(); writer.add_blank_page(width=300, height=300); writer.add_blank_page(width=300, height=300)
@@ -222,7 +223,7 @@ with sync_playwright() as p:
         initial_version = int(supervisor.locator('form[action$="/versions"] input[name="expected_version"]').get_attribute("value"))
         save_prompt(supervisor, initial_prompt + "\n" + MARKER_A, "浏览器模板首次变更")
         expect(supervisor.get_by_role("heading", name="居住证申领 · 当前生效版本 v" + str(initial_version + 1), exact=True)).to_be_visible()
-        ask(citizen, "模板甲生效后示例蓝色回执有哪些字段？")
+        ask(citizen, "模板甲生效后示例蓝色回执有哪些字段？", confirm=True)
         assert MARKER_A in captured_prompt("模板甲生效后示例蓝色回执有哪些字段？")
         citizen.locator("#question").fill("冻结模板期间示例蓝色回执有哪些字段？")
         citizen.get_by_role("button", name="发送问题").click()

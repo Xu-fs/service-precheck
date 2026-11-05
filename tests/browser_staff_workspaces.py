@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+from uuid import uuid4
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -51,10 +52,43 @@ with sync_playwright() as p:
             expect(page.get_by_role("heading", name="审核发布", exact=True)).to_be_visible()
             assert nav.get_by_role("link", name="工单处理", exact=True).count() == 0
         else:
-            assert nav.get_by_role("link").count() == 2
+            assert nav.get_by_role("link").count() == 4
             nav.get_by_role("link", name="系统运行状态", exact=True).click()
             expect(page.get_by_role("heading", name="系统运行状态", exact=True)).to_be_visible()
             expect(page.get_by_text("正常", exact=True)).to_be_visible()
+            nav.get_by_role("link", name="运行日志与错误查询", exact=True).click()
+            expect(page.get_by_role("heading", name="运行日志与错误查询", exact=True)).to_be_visible()
+            expect(page.locator("tbody")).to_contain_text("/staff/login")
+            page.screenshot(path=str(OUTPUT / "engineer-logs.png"), full_page=True)
+            # 独立测试服务使用虚构模型替身，验证流内超时后的跨页面定位。
+            api = context.request
+            csrf = api.get(URL + "/bootstrap").json()["csrf_token"]
+            headers = {"X-CSRF-Token": csrf, "Idempotency-Key": str(uuid4())}
+            first = api.post(URL + "/chat", data={"question": "居住证需要什么材料？"}, headers=headers)
+            packets = [json.loads(line[6:]) for line in first.text().splitlines() if line.startswith("data: ")]
+            prompt = next(item for item in packets if "confirmation_token" in item)
+            confirmed = api.post(URL + "/sessions/" + prompt["session_id"] + "/matter", data={
+                "matter_id": "residence-permit", "scenario_id": "rental-demo",
+                "confirmation_token": prompt["confirmation_token"]}, headers=headers)
+            assert confirmed.status == 200
+            failed = api.post(URL + "/chat", data={"session_id": prompt["session_id"], "question": "居住证模拟超时"},
+                              headers={**headers, "Idempotency-Key": str(uuid4())})
+            assert "MODEL_TIMEOUT" in failed.text(), (failed.status, failed.text())
+            nav.get_by_role("link", name="失败任务记录", exact=True).click()
+            page.get_by_label("任务来源", exact=True).select_option("chat")
+            page.get_by_role("button", name="查询", exact=True).click()
+            expect(page.locator("tbody")).to_contain_text("MODEL_TIMEOUT")
+            page.screenshot(path=str(OUTPUT / "engineer-failures.png"), full_page=True)
+            page.locator('tbody a[href^="/staff/logs?request_id="]').first.click()
+            expect(page.locator("tbody")).to_contain_text("MODEL_TIMEOUT")
+            page.get_by_label("日志级别", exact=True).select_option("error")
+            page.get_by_label("错误码", exact=True).fill("MODEL_TIMEOUT")
+            page.get_by_role("button", name="查询", exact=True).click()
+            expect(page.locator("tbody tr")).to_have_count(1)
+            page.set_viewport_size({"width": 390, "height": 844})
+            assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+            page.screenshot(path=str(OUTPUT / "engineer-logs-mobile.png"), full_page=True)
+            page.set_viewport_size({"width": 1360, "height": 980})
         expect(page.locator(".staff-header")).to_contain_text(title)
         page.get_by_role("button", name="退出登录", exact=True).click()
         expect(page).to_have_url(URL + "/staff/login")

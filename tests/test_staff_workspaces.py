@@ -21,7 +21,7 @@ EXPECTED = {
     "owner": ("业务维护工作台", None, {"knowledge", "rules", "reviews", "feedback"}),
     "supervisor": ("监督审核工作台", None, {"knowledge", "rules", "reviews", "prompts", "audits"}),
     "hotline": ("热线服务工作台", "工单进度查询", {"knowledge", "rules", "feedback", "tickets"}),
-    "engineer": ("平台运维工作台", None, {"system"}),
+    "engineer": ("平台运维工作台", None, {"system", "logs", "failures"}),
     "director": ("主任工作台", "升级工单处理", {"tickets"}),
 }
 

@@ -110,6 +110,35 @@ class ChatTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("联系电话", answer["content"])
         self.assertEqual(answer["citations"][0]["rule_version"], "DEMO-2026-02")
 
+    async def test_unknown_initial_questions_offer_ticket_without_matter_confirmation(self):
+        self.qa.ready = False
+        for question in ("111", "路灯坏了该找谁？", "社保需要什么材料？"):
+            with self.subTest(question=question):
+                response = await self.post(question)
+                self.assertEqual(response.status_code, 200, response.text)
+                items = events(response)
+                self.assertNotIn("matter_required", [name for name, _ in items])
+                reply = next(data for name, data in items if name == "fallback")
+                self.assertIn("提交工单", reply["text"])
+                self.assertEqual(reply["actions"], [{"type":"create_ticket", "label":"提交工单", "enabled":True}])
+                stored = (await self.client.get(f'/sessions/{items[0][1]["session_id"]}/messages')).json()["items"]
+                self.assertEqual(stored[-1]["result"]["actions"], reply["actions"])
+
+    async def test_unknown_reply_replays_and_preserves_confirmed_matter(self):
+        sid = await self.confirmed()
+        key = str(uuid4())
+        first = events(await self.post("路灯坏了该找谁？", sid, key))
+        replay = events(await self.post("路灯坏了该找谁？", sid, key))
+        self.assertIn("fallback", [name for name, _ in first])
+        self.assertEqual(next(data["actions"] for name, data in first if name == "fallback"),
+                         next(data["actions"] for name, data in replay if name == "fallback"))
+        self.assertTrue(replay[0][1]["replayed"])
+        answer = events(await self.post("示例申请表有哪些字段？", sid))
+        self.assertEqual(answer[-1][1]["outcome"], "answered")
+        self.assertNotIn("路灯坏了该找谁？", [item["content"] for item in self.qa.calls[-1][1]])
+        stored = (await self.client.get(f"/sessions/{sid}/messages")).json()
+        self.assertEqual(stored["matter_name"], "居住证申领")
+
     async def test_anonymous_sessions_are_isolated_and_cookie_is_http_only(self):
         sid = await self.confirmed()
         other = httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app), base_url="http://testserver")

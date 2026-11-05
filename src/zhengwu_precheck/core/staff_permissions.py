@@ -10,7 +10,7 @@ ROLE_PERMISSIONS = {
     "owner": BASE | {"knowledge.read", "knowledge.manage", "knowledge.feedback", "rule.read", "rule.edit", "rule.submit", "rule.release.read", "feedback.manage"},
     "supervisor": BASE | {"knowledge.read", "rule.read", "rule.review", "rule.publish", "rule.release.read", "prompt.manage", "audit.review", "conversation.summary", "conversation.read"},
     "hotline": BASE | {"knowledge.read", "knowledge.feedback", "rule.read", "ticket.progress", "conversation.summary"},
-    "engineer": BASE | {"system.health"},
+    "engineer": BASE | {"system.health", "system.logs"},
     "director": BASE | {"ticket.escalated", "conversation.summary", "conversation.read"},
 }
 # 只用于导航和列表入口；正文及每个动作仍检查原岗位、事项和处理关系。
@@ -26,6 +26,8 @@ MODULES = [
     {"slug": "audits", "name": "对话与预检审计", "permission": "audit.review", "batch": 3},
     {"slug": "tickets", "name": "工单处理", "permission": "ticket.list", "batch": 4},
     {"slug": "system", "name": "系统运行状态", "permission": "system.health"},
+    {"slug": "logs", "name": "运行日志与错误查询", "permission": "system.logs"},
+    {"slug": "failures", "name": "失败任务记录", "permission": "system.logs"},
 ]
 
 WORKSPACES = {
@@ -59,8 +61,8 @@ WORKSPACES = {
     },
     "engineer": {
         "title": "平台运维工作台",
-        "description": "查看系统技术运行状态，开展平台维护。",
-        "modules": ("system",),
+        "description": "检查系统状态，查询请求与错误日志，跟进失败任务。",
+        "modules": ("system", "logs", "failures"),
     },
     "director": {
         "title": "主任工作台", "ticket_name": "升级工单处理",
@@ -78,6 +80,8 @@ MODULE_DESCRIPTIONS = {
     "prompts": "维护授权事项的提示词版本，查看修改历史。",
     "audits": "查看获授权的记录并开展人工复核。",
     "system": "查看数据库连接及后台服务的技术状态。",
+    "logs": "按时间、级别、错误码和请求编号定位运行问题。",
+    "failures": "查看问答、知识处理及后台任务的失败技术记录。",
 }
 
 

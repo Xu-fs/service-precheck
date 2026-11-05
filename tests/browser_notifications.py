@@ -13,8 +13,24 @@ with sync_playwright() as p:
     page = context.new_page()
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
+    # 模拟浏览器保留的旧地址样式；更新后的页面应取得与新按钮配套的样式。
+    old_stylesheet = re.compile(r'/static/css/chat\.css$')
+    page.route(old_stylesheet, lambda route: route.fulfill(status=200,
+        content_type='text/css', body='.account{display:flex;gap:15px;align-items:center}'))
     page.goto(URL)
     page.wait_for_load_state('networkidle')
+    navigation = page.locator('.account .glass-button').first
+    assert navigation.evaluate('(el) => getComputedStyle(el).backgroundImage') != 'none', '旧样式缓存导致玻璃按钮背景缺失'
+    expect(navigation).to_have_css('text-decoration-line', 'none')
+    for icon in page.locator('.glass-button svg').all():
+        assert 0 < icon.bounding_box()['width'] <= 20, '导航图标尺寸异常'
+        expect(icon).to_have_css('fill', 'none')
+    page.screenshot(path=str(OUTPUT / 'glass-buttons-desktop.png'), full_page=True)
+    page.set_viewport_size({'width':390, 'height':844})
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    page.screenshot(path=str(OUTPUT / 'glass-buttons-mobile.png'), full_page=True)
+    page.set_viewport_size({'width':1440, 'height':960})
+    page.unroute(old_stylesheet)
     panel = page.locator('#notification-panel')
     expect(panel).to_be_visible()
     expect(panel).to_contain_text('登录后查看工单消息')

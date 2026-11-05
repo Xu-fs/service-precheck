@@ -21,6 +21,7 @@ from zhengwu_precheck.api.routes import materials
 from zhengwu_precheck.api.routes import operations
 from zhengwu_precheck.api.routes import workflow_demo
 from zhengwu_precheck.api.routes import public_services
+from zhengwu_precheck.api.routes import system_logs
 from zhengwu_precheck.infrastructure.request_limiter import SharedRateLimiter
 from zhengwu_precheck.infrastructure.agent_repository import AgentRepository
 from zhengwu_precheck.core.services.agent import AgentService
@@ -35,12 +36,14 @@ from zhengwu_precheck.infrastructure.staff_repository import StaffRepository
 from zhengwu_precheck.core.services.staff_auth import StaffAuth
 from zhengwu_precheck.infrastructure.prompt_repository import PromptRepository
 from zhengwu_precheck.infrastructure.audit_repository import AuditRepository
+from zhengwu_precheck.infrastructure.system_log_repository import SystemLogRepository
 from zhengwu_precheck.infrastructure.knowledge_repository import KnowledgeRepository
 from zhengwu_precheck.core.services.knowledge import KnowledgeService
 from zhengwu_precheck.infrastructure.ticket_repository import TicketRepository
 from zhengwu_precheck.utils.body_limit import BodyLimitMiddleware, body_limit
 from zhengwu_precheck.settings import Settings
 from zhengwu_precheck.utils.security import digest
+from zhengwu_precheck.utils.request_logging import RequestLoggingMiddleware
 
 PACKAGE = Path(__file__).resolve().parent
 
@@ -49,13 +52,14 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
     settings = settings or Settings()
     settings.validate()
     repo = ChatRepository(settings.runtime_dir / "chat.sqlite3", settings.lease_seconds)
+    system_log_repo = SystemLogRepository(repo.engine)
     service = qa if qa is not None else GuideQA(settings)
     staff_repo = StaffRepository(repo.engine)
     prompt_repo = PromptRepository(repo.engine)
     audit_repo = AuditRepository(repo.engine)
     knowledge_repo = KnowledgeRepository(repo.engine, settings.runtime_dir)
-    knowledge_service = KnowledgeService(knowledge_repo, service, settings)
-    ticket_repo = TicketRepository(repo.engine)
+    knowledge_service = KnowledgeService(knowledge_repo, service, settings, system_log_repo=system_log_repo)
+    ticket_repo = TicketRepository(repo.engine, system_log_repo=system_log_repo)
     agent_repo = AgentRepository(repo.engine)
     example_workflow = WorkflowDemo(settings.runtime_dir / 'workflow-demo')
     material_repo = MaterialRepository(repo.engine,settings.runtime_dir/'private-materials',
@@ -70,6 +74,7 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app):
         await repo.initialize()
+        await system_log_repo.initialize()
         await staff_repo.initialize()
         await prompt_repo.initialize()
         await knowledge_repo.initialize()
@@ -79,6 +84,7 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
         await material_repo.initialize()
         await quota_repo.initialize()
         await shared_limiter.initialize()
+        await system_log_repo.record(event="started")
         import asyncio
         worker = asyncio.create_task(knowledge_service.run())
         ticket_worker = asyncio.create_task(ticket_repo.run())
@@ -90,10 +96,12 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
             await asyncio.gather(worker, ticket_worker, return_exceptions=True)
             await service.close()
             await example_workflow.close()
+            await system_log_repo.record(event="stopped")
             await repo.close()
 
     app = FastAPI(title="政务易办示例问答", lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.repo, app.state.qa, app.state.settings = repo, service, settings
+    app.state.system_log_repo = system_log_repo
     app.state.staff_repo, app.state.staff_auth = staff_repo, StaffAuth(staff_repo, settings.staff_jwt_secret)
     app.state.prompt_repo, app.state.audit_repo = prompt_repo, audit_repo
     app.state.knowledge_repo, app.state.knowledge_service = knowledge_repo, knowledge_service
@@ -111,12 +119,13 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
     allowed_hosts = {host.strip().strip("[]").lower() for host in hosts}
 
     def error_response(request, error):
+        request.state.error_code = error.code
         return JSONResponse(status_code=error.status, content={"error": {"code": error.code, "message": error.message,
             "request_id": getattr(request.state, "request_id", str(uuid4())), "retryable": error.retryable}})
 
     @app.middleware("http")
     async def response_policy(request, call_next):
-        request.state.request_id = str(uuid4())
+        request.scope.setdefault("state", {}).setdefault("request_id", str(uuid4()))
         if (request.url.hostname or "").lower() not in allowed_hosts:
             response = error_response(request, AppError(400, "INVALID_HOST", "访问地址未获允许，请使用配置的服务地址"))
         elif request.headers.get("content-length", "").isdigit() and int(request.headers["content-length"]) > body_limit(request.url.path):
@@ -151,6 +160,13 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
     async def database_error(request, error):
         return error_response(request, AppError(503, "STORAGE_UNAVAILABLE", "记录服务暂时不可用，请稍后重试", True))
 
+    @app.exception_handler(Exception)
+    async def unexpected_error(request, error):
+        response = error_response(request, AppError(500, "UNHANDLED_ERROR", "系统暂时无法完成请求，请稍后重试", True))
+        response.headers["X-Request-ID"] = request.state.request_id
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
     templates = Jinja2Templates(directory=str(PACKAGE / "templates"))
     app.state.templates = templates
     @app.get('/health')
@@ -184,7 +200,9 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
     app.include_router(operations.router)
     app.include_router(workflow_demo.router)
     app.include_router(public_services.router)
+    app.include_router(system_logs.router)
     app.include_router(staff.router)
+    app.add_middleware(RequestLoggingMiddleware, repository=system_log_repo)
     return app
 
 

@@ -84,7 +84,10 @@ def _time(value):
 
 
 def _common(request):
-    return {'statuses': STATUS, 'matters': MATTERS, 'time_text': _time, 'role_names': ROLES,
+    return {'statuses': STATUS, 'matters': MATTERS + [
+                {'matter_id':'unassigned', 'name':'其他问题（人工分流）',
+                 'scenario_id':'manual-triage', 'scenario_name':'人工咨询分流'}],
+            'time_text': _time, 'role_names': ROLES,
             'example_cases': workflow_cases(), 'new_key': lambda: secrets.token_urlsafe(24)}
 
 

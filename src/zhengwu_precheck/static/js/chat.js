@@ -1,4 +1,4 @@
-/* 只保存会话ID，身份凭证由HttpOnly Cookie管理；所有模型/用户文本用textContent。 */
+/* 会话仅在本页延续，重新进入不恢复旧会话；身份凭证由HttpOnly Cookie管理。 */
 import { readSSE } from './sse.js';
 import { createNotifications } from './notifications.js';
 
@@ -6,6 +6,7 @@ const $ = id => document.getElementById(id);
 let csrf = document.querySelector('meta[name="csrf-token"]').content;
 let session = null, identityKey = 'anonymous', busy = false, controller = null, nextCursor = null;
 let pendingQuestion = '', generation = 0;
+let ticketAfterLogin = false;
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const storageKey = () => `zhengwu.chat.${identityKey}`;
@@ -13,6 +14,20 @@ function storeSession(value) { session = value; try { value ? localStorage.setIt
 function scrollBottom() { $('scroll-area').scrollTop = $('scroll-area').scrollHeight; }
 function status(text = '') { $('global-status').textContent = text; }
 function setBusy(value) { busy = value; $('send').disabled = value; $('stop').hidden = !value; $('new-chat').disabled = value; $('change-matter').disabled = value; $('login-open').disabled = value; $('logout').disabled = value; }
+
+function resetChat(focus = false) {
+  generation++;
+  storeSession(null);
+  pendingQuestion = ''; nextCursor = null;
+  $('messages').replaceChildren();
+  $('welcome').hidden = false;
+  $('load-older').hidden = true;
+  $('matter-label').textContent = '尚未确认事项';
+  $('question').value = ''; $('counter').textContent = '0 / 2000';
+  $('scroll-area').scrollTop = 0;
+  status();
+  if (focus) $('question').focus();
+}
 
 async function jsonRequest(path, options = {}) {
   const response = await fetch(path, { credentials: 'same-origin', ...options, headers: {
@@ -63,7 +78,7 @@ function citations(view, items) {
   view.wrapper.append(details);
 }
 
-function actions(view, items) {
+function actions(view, items, question = '') {
   const group = document.createElement('div'); group.className = 'action-list';
   for (const item of items || []) {
     if (item.type === 'open_service_guide' && item.enabled) {
@@ -72,7 +87,13 @@ function actions(view, items) {
     }
     const button = document.createElement('button'); button.type = 'button'; button.textContent = item.label; button.disabled = !item.enabled;
     button.addEventListener('click', () => {
-        if (item.type === 'create_ticket') { window.location.assign('/my/tickets'); }
+      if (item.type === 'create_ticket') {
+        try { sessionStorage.setItem('zhengwu.ticket.question', question); } catch {}
+        if (identityKey === 'anonymous') {
+          ticketAfterLogin = true;
+          $('login-dialog').showModal();
+        } else window.location.assign('/my/tickets#create-title');
+      }
       if (item.type === 'clarify') { $('question').focus(); status('请补充具体事项、适用情形或想了解的要求。'); }
       if (item.type === 'human_service' && !group.querySelector('.human-info')) {
         const info = document.createElement('p'); info.className = 'human-info'; info.textContent = item.text; group.append(info);
@@ -118,10 +139,10 @@ async function restore(older = false) {
   for (let i = 0; i < data.items.length; i++) {
     const item = data.items[i];
     if (item.sender_type === 'user') { lastQuestion = item.content; pendingQuestion = item.content; }
-    const text = item.status === 'pending' ? '这条问题仍在处理中，请稍后刷新查看。' :
+    const text = item.status === 'pending' ? '这条问题仍在处理中，请稍后重试。' :
       item.status === 'failed' ? '上次回答未完成，可以重新提问。' : item.status === 'cancelled' ? '回答已停止。' : item.content;
     const view = message(item.sender_type, text); citations(view, item.citations);
-    if (item.result?.actions?.length) actions(view, item.result.actions);
+    if (item.result?.actions?.length) actions(view, item.result.actions, lastQuestion);
     if (!older && i === data.items.length - 1 && item.outcome === 'needs_matter_confirmation') matterOptions(view, item.result, lastQuestion);
   }
   if (older) { $('messages').append(...previous); $('scroll-area').scrollTop = $('scroll-area').scrollHeight - savedTop; }
@@ -153,9 +174,9 @@ async function sendQuestion(question) {
       if (event === 'status') progress.textContent = data.text;
       if (event === 'answer_delta') { progress.hidden = true; typeText(view, data.text); }
       if (event === 'citations') citations(view, data.items);
-      if (event === 'actions') actions(view, data.items);
+      if (event === 'actions') actions(view, data.items, question);
       if (event === 'matter_required') { progress.hidden = true; $('matter-label').textContent = '尚未确认事项'; view.content.textContent = data.text; matterOptions(view, data, question); }
-      if (event === 'fallback') { progress.hidden = true; view.content.textContent = data.text; actions(view, data.actions); }
+      if (event === 'fallback') { progress.hidden = true; view.content.textContent = data.text; actions(view, data.actions, question); }
       if (event === 'error') { failed = true; progress.hidden = true; view.content.textContent = data.message; view.wrapper.classList.add('error'); }
       if (event === 'done' || event === 'error') { progress.hidden = true; return true; }
       scrollBottom(); return false;
@@ -175,6 +196,8 @@ async function sendQuestion(question) {
 }
 
 async function initialize() {
+  resetChat();
+  setBusy(true);
   notifications.setIdentity(false);
   try {
     const data = await jsonRequest('/bootstrap'); csrf = data.csrf_token;
@@ -182,12 +205,11 @@ async function initialize() {
     $('identity').textContent = data.username ? `已登录：${data.username}` : '公开咨询无需登录';
     $('login-open').hidden = data.identity === 'user'; $('logout').hidden = data.identity !== 'user';
     notifications.setIdentity(data.identity === 'user');
-    try { session = localStorage.getItem(storageKey()); } catch {}
-    if (session) {
-      try { await restore(); } catch (error) { storeSession(null); status(error.message); }
-    }
+    storeSession(null);
   } catch (error) {
     status(error.message); if (error.code === 'AUTH_EXPIRED') { $('logout').hidden = false; $('login-open').hidden = true; }
+  } finally {
+    setBusy(false);
   }
 }
 
@@ -197,18 +219,25 @@ $('question').addEventListener('keydown', event => { if (event.key === 'Enter' &
 for (const button of document.querySelectorAll('[data-question]')) button.addEventListener('click', () => sendQuestion(button.dataset.question));
 $('stop').addEventListener('click', () => controller?.abort());
 $('change-matter').addEventListener('click', () => sendQuestion('请重新选择事项。'));
-$('new-chat').addEventListener('click', () => { generation++; storeSession(null); $('messages').replaceChildren(); $('welcome').hidden = false; $('load-older').hidden = true; $('matter-label').textContent = '尚未确认事项'; status(); $('question').focus(); });
+$('new-chat').addEventListener('click', () => resetChat(true));
 $('load-older').addEventListener('click', () => restore(true).catch(error => status(error.message)));
 $('login-open').addEventListener('click', () => $('login-dialog').showModal());
 $('login-close').addEventListener('click', () => $('login-dialog').close());
+$('login-dialog').addEventListener('close', () => {
+  ticketAfterLogin = false;
+  try { sessionStorage.removeItem('zhengwu.ticket.question'); } catch {}
+});
 $('login-form').addEventListener('submit', async event => {
   event.preventDefault(); $('login-error').textContent = '';
   try {
     await jsonRequest('/auth/login', { method: 'POST', body: JSON.stringify({ username: $('username').value, password: $('password').value }) });
-    $('password').value = ''; $('login-dialog').close(); session = null; $('messages').replaceChildren(); $('welcome').hidden = false; $('matter-label').textContent = '尚未确认事项'; await initialize(); status('已登录。匿名咨询与个人咨询分别保存。');
+    $('password').value = '';
+    if (ticketAfterLogin) { window.location.assign('/my/tickets#create-title'); return; }
+    $('login-dialog').close(); await initialize(); status('已登录，可以开始新的咨询或提交工单。');
   } catch (error) { $('login-error').textContent = error.message; }
 });
 $('logout').addEventListener('click', async () => {
-  try { await jsonRequest('/auth/logout', { method: 'POST' }); session = null; $('messages').replaceChildren(); $('welcome').hidden = false; $('matter-label').textContent = '尚未确认事项'; await initialize(); status('已退出登录。'); } catch (error) { status(error.message); }
+  try { await jsonRequest('/auth/logout', { method: 'POST' }); await initialize(); status('已退出登录。'); } catch (error) { status(error.message); }
 });
+window.addEventListener('pageshow', event => { if (event.persisted) initialize(); });
 initialize();

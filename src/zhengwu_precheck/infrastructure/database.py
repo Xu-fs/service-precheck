@@ -178,6 +178,7 @@ class ChatRepository:
             rows = (await conn.execute(text("""SELECT u.content AS question,a.content AS answer FROM messages a
                 JOIN messages u ON a.reply_to_message_id=u.id WHERE a.conversation_id=:id AND a.status='complete'
                 AND a.outcome IN ('answered','insufficient_evidence') AND a.matter_id=:matter
+                AND COALESCE(json_extract(a.result_json, '$.reason'), '') != 'outside_presets'
                 ORDER BY a.created_at DESC LIMIT 6"""), {"id": sid, "matter": matter})).mappings().all()
         return trim_history([item for row in reversed(rows) for item in [
             {"role": "user", "content": row["question"]}, {"role": "assistant", "content": row["answer"]}]])

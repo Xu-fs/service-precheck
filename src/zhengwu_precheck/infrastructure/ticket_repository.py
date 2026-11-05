@@ -69,7 +69,8 @@ def field(data, name, limit=4000):
 
 
 class TicketRepository:
-    def __init__(self, engine, calendar=None, clock=time.time):
+    def __init__(self, engine, calendar=None, clock=time.time, *, system_log_repo=None):
+        self.system_log_repo = system_log_repo
         self.engine,self.calendar,self.clock = engine,calendar or WorkCalendar.configured(),clock
         self.stopping = asyncio.Event()
 
@@ -660,7 +661,8 @@ class TicketRepository:
             except asyncio.CancelledError:raise
             except Exception:
                 # 失败任务仍为pending；不将用户正文或内部响应写日志。
-                pass
+                if self.system_log_repo:
+                    await self.system_log_repo.task_failure("ticket", "TICKET_WORKER_FAILED")
             try:
                 await asyncio.wait_for(self.stopping.wait(),5)
             except TimeoutError:pass

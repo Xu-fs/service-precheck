@@ -19,7 +19,8 @@ with sync_playwright() as p:
     page.goto(URL)
     page.wait_for_load_state("networkidle")
     page.screenshot(path=str(OUTPUT / "desktop-start.png"), full_page=True)
-    page.get_by_role("button", name="示例申请表有哪些字段？", exact=True).click()
+    page.locator("#question").fill("示例申请表有哪些字段？")
+    page.get_by_role("button", name="发送问题").click()
     page.get_by_role("button", name="居住证申领", exact=False).click()
     expect(page.get_by_text("正在检索办事指南……", exact=True).last).to_be_visible()
     expect(page.locator(".message-content").last).to_have_text("示例申请表包含姓名、联系电话和居住地址三个示例字段。")
@@ -29,8 +30,13 @@ with sync_playwright() as p:
     page.screenshot(path=str(OUTPUT / "desktop-answer.png"), full_page=True)
     session_id = page.evaluate("localStorage.getItem('zhengwu.chat.anonymous')")
 
-    # 刷新后恢复完整消息与引用，不再次调用POST。
+    # 刷新后回到欢迎页；新问题重新确认事项，不沿用旧咨询。
     page.reload(); page.wait_for_load_state("networkidle")
+    expect(page.get_by_role("heading", name="欢迎来到政务易办", exact=True)).to_be_visible()
+    expect(page.locator(".message-content")).to_have_count(0)
+    page.locator("#question").fill("示例申请表有哪些字段？")
+    page.get_by_role("button", name="发送问题").click()
+    page.get_by_role("button", name="居住证申领", exact=False).click()
     expect(page.locator(".message-content").last).to_have_text("示例申请表包含姓名、联系电话和居住地址三个示例字段。")
     # 用户问题以纯文本展示，即使带HTML也不创建DOM标签。
     page.locator("#question").fill('<img src=x onerror="window.injected=true">')
@@ -40,11 +46,11 @@ with sync_playwright() as p:
     assert not page.evaluate("Boolean(window.injected)")
     page.locator("#question").fill("火星旅游")
     page.get_by_role("button", name="发送问题").click()
-    expect(page.locator(".message-content").last).to_have_text("现有办事指南中未找到相关依据")
-    expect(page.get_by_role("button", name="登录后提交人工工单")).to_be_enabled()
+    expect(page.locator(".message-content").last).to_contain_text("提交工单")
+    expect(page.locator('.message.assistant').last.get_by_role("button", name="提交工单", exact=True)).to_be_enabled()
 
-    # 中途取消不能永久锁住会话；已取消记录可刷新恢复。
-    page.locator("#question").fill("慢回答")
+    # 中途取消不能永久锁住当前会话。
+    page.locator("#question").fill("示例申请表慢回答")
     page.get_by_role("button", name="发送问题").click()
     expect(page.get_by_text("正在检索办事指南……", exact=True).last).to_be_visible()
     page.get_by_role("button", name="停止回答").click()
@@ -76,7 +82,8 @@ with sync_playwright() as p:
     mobile = browser.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, reduced_motion="reduce")
     phone = mobile.new_page(); phone.on("pageerror", lambda error: errors.append(str(error)))
     phone.goto(URL); phone.wait_for_load_state("networkidle")
-    phone.get_by_role("button", name="示例申请表有哪些字段？", exact=True).click()
+    phone.locator("#question").fill("示例申请表有哪些字段？")
+    phone.get_by_role("button", name="发送问题").click()
     phone.get_by_role("button", name="居住证申领", exact=False).click()
     expect(phone.locator(".message-content").last).to_have_text("示例申请表包含姓名、联系电话和居住地址三个示例字段。")
     phone.get_by_text("查看引用来源（1）").click()
@@ -86,6 +93,6 @@ with sync_playwright() as p:
     phone.get_by_role("button", name="个体工商户设立登记", exact=False).click()
     expect(phone.locator(".message-content").last).to_have_text("现有办事指南中未找到相关依据")
     assert not errors, errors
-    (OUTPUT / "result.json").write_text(json.dumps({"passed": ["桌面问答", "事项确认", "检索状态", "引用展开", "刷新恢复", "HTML转义", "拒答入口", "取消恢复", "跨匿名身份隔离", "独立账号登录", "匿名历史不被自动认领", "手机无横向溢出", "减少动态效果完整回答", "跨事项无依据拒答"], "page_errors": errors}, ensure_ascii=False, indent=2), encoding="utf-8")
+    (OUTPUT / "result.json").write_text(json.dumps({"passed": ["桌面问答", "事项确认", "检索状态", "引用展开", "刷新重新开始", "HTML转义", "拒答入口", "取消恢复", "跨匿名身份隔离", "独立账号登录", "匿名历史不被自动认领", "手机无横向溢出", "减少动态效果完整回答", "跨事项无依据拒答"], "page_errors": errors}, ensure_ascii=False, indent=2), encoding="utf-8")
     print("浏览器验证通过：14项，控制台脚本错误0项。")
     mobile.close(); context.close(); browser.close()

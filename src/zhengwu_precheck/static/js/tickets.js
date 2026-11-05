@@ -49,6 +49,18 @@ for (const form of document.querySelectorAll('form[data-ticket-write]')) {
 // 仅辅助匹配申请情形；无脚本仍可手动选择，服务器再次验证事项与情形。
 const matter = document.getElementById('matter');
 const scenario = document.getElementById('scenario');
+const ticketContent = document.getElementById('ticket-content');
+if (ticketContent && location.hash === '#create-title' && !location.search) {
+  try {
+    const question = sessionStorage.getItem('zhengwu.ticket.question');
+    if (question) {
+      document.getElementById('ticket-title').value = question.slice(0, 120);
+      ticketContent.value = question;
+      matter.value = 'unassigned'; scenario.value = 'manual-triage';
+      sessionStorage.removeItem('zhengwu.ticket.question');
+    }
+  } catch {}
+}
 if (matter && scenario) {
   const update = () => {
     for (const option of scenario.options) option.hidden = option.dataset.matter !== matter.value;

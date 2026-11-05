@@ -10,6 +10,33 @@
 @media(max-width:760px){.topbar{height:108px;padding:10px 17px;flex-wrap:wrap;align-content:center;gap:4px 12px}.brand{flex:1;font-size:19px;gap:9px}.brand-mark{width:36px;height:36px;font-size:23px}.brand small{font-size:9px}.staff-login{margin-left:0;padding:8px 10px;font-size:11px}.account{order:1;width:100%;flex-wrap:wrap;justify-content:flex-end;gap:3px;font-size:11px}.account>span{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.workspace{display:flex;flex-direction:column;margin:0;height:calc(100dvh - 108px);min-height:0;border:0;border-radius:0}.sidebar{padding:11px 17px;display:block}.sidebar-top,.boundary,.section-label{display:none}.matter-summary{border:0;padding:0;display:flex;align-items:center;justify-content:space-between;gap:10px}.matter-summary strong{font-size:12px;font-weight:400}.sidebar-button{margin:0;font-size:10px;padding:5px 8px;flex-shrink:0}.chat-panel{flex:1}.chat-toolbar{padding:10px 17px}.chat-toolbar strong{font-size:14px}.scroll-area{padding:20px 17px}.welcome{padding:20px 0}.welcome h2{font-size:21px}.welcome>p{font-size:12px}.guide-symbol{margin-bottom:20px}.suggestions{margin-top:22px}.composer-area{padding:0 13px max(10px,env(safe-area-inset-bottom))}.composer{padding:10px 12px}.footer-note{font-size:9px;margin-top:7px}.message{font-size:13px}.global-status{font-size:11px;margin:4px 0;min-height:16px}.scope-note{margin-bottom:0}.messages{gap:19px}}
 @media(prefers-reduced-motion:reduce){.scroll-area{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
 
+/* 顶栏玻璃按钮：半透明底色、内侧高光与柔和投影。 */
+.guide-chat-page .topbar{background:radial-gradient(ellipse at 68% 0%,#dceaff80,transparent 65%),linear-gradient(115deg,#ffffffed,#f0f6ffcc);border-bottom-color:#d5e2f080}
+.guide-chat-page .account{gap:10px}
+.guide-chat-page .account>#identity{margin:0 3px;color:#647994;font-size:12px}
+.guide-chat-page .glass-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;flex-shrink:0;min-height:40px;padding:9px 16px;border:1px solid #ffffffd9;border-radius:999px;background:linear-gradient(145deg,#ffffffd9,#e1edff66);box-shadow:inset 0 1px 0 #fff,inset 0 -1px 0 #c1d4ec40,0 3px 10px #274c7b0d,0 0 0 1px #bad0ec59;-webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);color:#234c7b;font-size:13px;font-weight:500;line-height:1.4;text-decoration:none;white-space:nowrap;transition:background .18s ease,box-shadow .18s ease,transform .18s ease}
+.guide-chat-page .glass-button:visited{color:#234c7b}
+.guide-chat-page .glass-button svg{width:16px;height:16px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+.guide-chat-page .glass-button-accent{background:linear-gradient(145deg,#f5faffeb,#cfe1ff80);color:#1654ad;box-shadow:inset 0 1px 0 #fff,0 3px 12px #2363be14,0 0 0 1px #91b6ed66}
+.guide-chat-page .glass-button:active:not(:disabled){transform:translateY(0);box-shadow:inset 0 2px 5px #274c7b14,0 0 0 1px #a8c4e680}
+.guide-chat-page .welcome-cases{gap:12px;margin-top:12px}
+.guide-chat-page .welcome-cases .glass-button{justify-content:flex-start;min-height:46px;padding:11px 18px;line-height:1.7;text-align:left;white-space:normal}
+@media(hover:hover){.guide-chat-page .glass-button:hover:not(:disabled){background:linear-gradient(145deg,#fff,#d9e9ffb3);box-shadow:inset 0 1px 0 #fff,0 5px 15px #274c7b18,0 0 0 1px #91b6ed80;transform:translateY(-1px)}}
+@media(min-width:761px) and (max-width:1100px){.guide-chat-page .topbar{padding-inline:22px}.guide-chat-page .account{gap:7px}.guide-chat-page .glass-button{gap:5px;padding:8px 11px;font-size:12px}.guide-chat-page .account>#identity{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}}
+@media(max-width:760px){
+ .guide-chat-page .topbar{height:128px;gap:8px 12px}
+ .guide-chat-page .account{justify-content:flex-end;gap:7px}
+ .guide-chat-page .glass-button{min-height:32px;gap:5px;padding:6px 10px;font-size:11px}
+ .guide-chat-page .glass-button svg{width:14px;height:14px}
+ .guide-chat-page .account>#identity{order:3;flex-basis:100%;max-width:none;font-size:10px;text-align:right;margin:0}
+ .guide-chat-page .staff-login{margin-left:0}
+ .guide-chat-page .workspace{height:calc(100dvh - 128px)}
+ .guide-chat-page #welcome{padding:8px 0}
+ .guide-chat-page #welcome .guide-symbol{width:34px;height:38px;padding:8px 6px;margin-bottom:14px}
+ .guide-chat-page #welcome h2{margin-bottom:12px}
+ .guide-chat-page #welcome .scope-note{margin-top:12px!important}
+}
+
 /* 咨询和消息各自滚动，右栏沿用既有政务蓝与细分隔线。 */
 .guide-chat-page .workspace{width:calc(100% - 48px);max-width:1560px;grid-template-columns:240px minmax(0,1fr) 300px}
 .notification-panel{position:relative;min-width:0;min-height:0;display:flex;flex-direction:column;background:#f9fbfe;border-left:1px solid var(--line)}

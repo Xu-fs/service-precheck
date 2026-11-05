@@ -65,8 +65,9 @@ def make_chunks(pages):
 
 
 class KnowledgeService:
-    def __init__(self, repository, qa, settings):
+    def __init__(self, repository, qa, settings, *, system_log_repo=None):
         self.repo, self.qa, self.settings = repository, qa, settings
+        self.system_log_repo = system_log_repo
         self.wakeup = asyncio.Event()
 
     def signature(self):
@@ -85,7 +86,8 @@ class KnowledgeService:
                 raise
             except Exception:
                 # 记录/网络暂不可用时等待，不将内部响应正文写入页面或日志。
-                pass
+                if self.system_log_repo:
+                    await self.system_log_repo.task_failure("knowledge", "KNOWLEDGE_WORKER_FAILED")
             self.wakeup.clear()
             try:
                 await asyncio.wait_for(self.wakeup.wait(), 3)
@@ -113,6 +115,8 @@ class KnowledgeService:
                 if changed.rowcount == 1:
                     await conn.execute(text("UPDATE knowledge_versions SET processing_status='failed',notes=:note WHERE id=:id AND state='draft'"),
                         {"id": job["version_id"], "note": "处理失败，请检查文档、模型配置后重试；内部响应未公开。"})
+            if changed.rowcount == 1 and self.system_log_repo:
+                await self.system_log_repo.task_failure("knowledge", code, job["id"])
         return True
 
     async def _assert_job(self, conn, job):
