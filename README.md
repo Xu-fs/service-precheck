@@ -39,6 +39,17 @@ $env:PYTHONPATH = (Resolve-Path src).Path
 
 ## 检查和示例
 
+统一工程检查（使用项目虚拟环境的 Python，另需 Node.js 22）：
+
+```powershell
+python -m pip install -r config/requirements-dev.txt
+python scripts/verify.py
+# 已安装 Playwright 并准备本机 Chrome 后，追加全部浏览器回归：
+python scripts/verify.py --full
+```
+
+基础检查包含目录边界、Ruff 静态检查、新检查工具格式、依赖入口、Python 全量测试和前端流解析；失败立即停止。GitHub Actions 在 Windows/Linux 的 Python 3.12 环境运行同一基础入口；远端实际结果以 Actions 为准。历史代码格式逐步整理，不在本批整体重排。贡献与提交要求见 [贡献指南](CONTRIBUTING.md)，本批验证见 [工程规范第一批验证](docs/工程规范第一批验证.md)。
+
 两个可完整流转的预设案例：居住证材料补正、个体工商户经营地址核对，均标注“（示例）”。可在 `/my/tickets` 选用预设手动逐步办理，在 `/examples/workflow` 自动演示并跟随各岗位视角，或执行 `scripts/create_demo_cases.py` 准备待办。两种网页模式分别保留记录，均按窗口初审、业务复核、主任审核、办事人确认依次结案。操作说明见 [完整流程案例](docs/demo-cases.md)。
 
 ```powershell

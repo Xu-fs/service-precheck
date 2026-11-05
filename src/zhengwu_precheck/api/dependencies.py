@@ -1,7 +1,6 @@
 """所有权与CSRF校验统一入口；登录失效不回落匿名身份。"""
 import hmac
 import time
-from urllib.parse import urlsplit
 
 from fastapi import Request
 from zhengwu_precheck.core.errors import AppError

@@ -7,13 +7,11 @@ from contextlib import suppress
 import json
 import os
 from pathlib import Path
-import re
 import time
 from uuid import uuid4
 
 import faiss
 import numpy as np
-from zhengwu_precheck.utils.knowledge_extract import extract_pages
 from sqlalchemy import text
 from zhengwu_precheck.core.errors import AppError
 

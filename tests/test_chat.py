@@ -1,5 +1,4 @@
 """问答入口契约测试：仅替换模型服务，真实执行ASGI、SQLite、身份和SSE。"""
-import asyncio
 import importlib.util
 import json
 import os

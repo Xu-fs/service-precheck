@@ -1,5 +1,4 @@
 """第二三批接纳快照→发布索引→模板→引用/审计的集成测试，仅模型HTTP用替身。"""
-import asyncio
 import json
 import os
 from pathlib import Path
@@ -21,7 +20,6 @@ from zhengwu_precheck.main import create_app
 from zhengwu_precheck.settings import Settings
 from zhengwu_precheck.core.services.guide_qa import GuideQA
 from zhengwu_precheck.core.services.knowledge import KnowledgeService
-from zhengwu_precheck.core.errors import AppError
 from zhengwu_precheck.utils.security import digest
 
 

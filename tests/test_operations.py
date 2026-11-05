@@ -1,7 +1,6 @@
 from contextlib import closing
 """运维控制使用隔离虚构数据，不访问真实运行目录。"""
 import asyncio
-import json
 import sqlite3
 import multiprocessing
 

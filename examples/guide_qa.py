@@ -8,12 +8,13 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from zhengwu_precheck.core.guide_rag import (
-    ApiConfig, Chunk, Hit, NO_EVIDENCE, build_or_load_index, build_prompt,
-    call_llm, check_base_url, embed_texts, load_chunks, retrieve, tokenize, validate_answer,
+    ApiConfig, Chunk as Chunk, Hit as Hit, NO_EVIDENCE, build_or_load_index, build_prompt,
+    call_llm, check_base_url as check_base_url, embed_texts as embed_texts,
+    load_chunks, retrieve, tokenize as tokenize, validate_answer,
 )
 
 # 保持原阶段1测试使用的HTTP边界可注入。
-import httpx
+import httpx as httpx
 
 # 【保留在 examples】命令行装配仅用于验证流程，不引入Web或其他业务能力。
 def main() -> int:

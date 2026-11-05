@@ -1,5 +1,4 @@
 """示例账号初始化：真实数据库登录、重复执行和现有账号保护。"""
-import asyncio
 import importlib.util
 import os
 from pathlib import Path

@@ -205,7 +205,7 @@ class RuleFreshnessTests(MaterialFixture, unittest.IsolatedAsyncioTestCase):
 
 class WorkerLifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def exercise_lifecycle(self,cancel):
-        import asyncio,os,sys
+        import asyncio,os
         from unittest.mock import patch
         from zhengwu_precheck.utils import material_extract
         spawn=asyncio.create_subprocess_exec

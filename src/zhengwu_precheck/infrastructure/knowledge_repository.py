@@ -1,5 +1,4 @@
 """知识版本、审核发布及任务仓储；发布内容不可原地修改或物理删除。"""
-import hashlib
 import json
 from pathlib import Path
 import time

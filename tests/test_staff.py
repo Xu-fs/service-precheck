@@ -1,6 +1,5 @@
 """工作人员第一批契约测试：真实JWT、SQLite及ASGI，不调用模型。"""
 import importlib.util
-import json
 from pathlib import Path
 import re
 import sys

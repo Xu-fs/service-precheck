@@ -1,11 +1,10 @@
 """办事人直接确认接口；模型不可调用或伪造这些事件。"""
-import json
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import text
 from zhengwu_precheck.api.dependencies import principal, csrf
-from zhengwu_precheck.api.routes.tickets import _body, _citizen, _form
+from zhengwu_precheck.api.routes.tickets import _body, _citizen
 from zhengwu_precheck.core.services.chat import MATTERS
 from zhengwu_precheck.core.services.agent_tools import dispatch
 from zhengwu_precheck.core.errors import AppError
