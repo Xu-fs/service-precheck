@@ -14,6 +14,7 @@ import faiss
 import numpy as np
 from sqlalchemy import text
 from zhengwu_precheck.core.errors import AppError
+from zhengwu_precheck.utils.storage_paths import private_path
 
 
 async def extract_in_process(path, filename, timeout=30):
@@ -169,10 +170,10 @@ class KnowledgeService:
             raise ValueError("嵌入响应无效")
         faiss.normalize_L2(matrix)
         index = faiss.IndexFlatIP(matrix.shape[1]); index.add(matrix)
-        index_path = self.settings.runtime_dir / "knowledge" / "indexes" / (row["id"] + "-" + job["lease_token"] + ".faiss")
+        index_path = private_path(self.settings.runtime_dir, "knowledge/indexes/" + row["id"] + "-" + job["lease_token"] + ".faiss")
         index_path.parent.mkdir(parents=True, exist_ok=True)
         raw_index = faiss.serialize_index(index).tobytes()
-        temporary = index_path.with_suffix(".tmp")
+        temporary = private_path(self.settings.runtime_dir, index_path.with_suffix(".tmp").relative_to(self.settings.runtime_dir.resolve()).as_posix())
         await asyncio.to_thread(temporary.write_bytes, raw_index)
         temporary.replace(index_path)
         async with self.repo.engine.begin() as conn:

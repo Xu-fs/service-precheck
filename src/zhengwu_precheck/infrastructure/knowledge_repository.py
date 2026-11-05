@@ -7,6 +7,7 @@ from sqlalchemy import text, bindparam
 
 from zhengwu_precheck.core.errors import AppError
 from zhengwu_precheck.core.staff_permissions import allows
+from zhengwu_precheck.utils.storage_paths import private_path
 
 SCENARIOS = {"residence-permit": "rental-demo", "sole-trader-registration": "standard-demo"}
 KINDS = {"guide": "办事指南", "checklist": "材料清单", "rule": "预检规则", "workflow": "人工处理流程"}
@@ -131,7 +132,7 @@ class KnowledgeRepository:
         if extension == ".pdf" and not raw.startswith(b"%PDF-"):
             raise AppError(422, "INVALID_DOCUMENT", "文件不是有效的PDF")
         identifier, version_id, job_id = str(uuid4()), str(uuid4()), str(uuid4())
-        storage = self.runtime_dir / "knowledge" / "uploads" / (version_id + extension)
+        storage = private_path(self.runtime_dir, "knowledge/uploads/" + version_id + extension)
         storage.parent.mkdir(parents=True, exist_ok=True)
         import asyncio
         await asyncio.to_thread(storage.write_bytes, raw)

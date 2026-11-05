@@ -10,6 +10,21 @@ async def staff_identity(request: Request):
     return await request.app.state.staff_auth.identity(request.cookies.get("zw_staff_access"))
 
 
+async def staff_api_guard(request: Request):
+    """后台API默认需要身份；三个会话入口仍执行自己的CSRF和凭证校验。"""
+    # 使用已匹配路由，避免反向代理root_path或子应用挂载前缀绕过字符串判断。
+    path = request.scope["route"].path
+    public = {
+        ("POST", "/staff/api/auth/login"),
+        ("POST", "/staff/api/auth/refresh"),
+        ("POST", "/staff/api/auth/logout"),
+    }
+    if (path == "/staff/api" or path.startswith("/staff/api/")) and (
+        request.method, path
+    ) not in public:
+        await staff_identity(request)
+
+
 async def require_permission(request, permission, matter_id=None):
     identity = await staff_identity(request)
     if not allows(identity["grants"], permission, matter_id):

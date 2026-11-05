@@ -3,9 +3,10 @@ import hashlib
 import json
 from pathlib import Path
 import time
-from uuid import uuid4
+from uuid import UUID, uuid4
 from sqlalchemy import text
 from zhengwu_precheck.core.errors import AppError
+from zhengwu_precheck.utils.storage_paths import private_path
 
 
 class MaterialRepository:
@@ -32,9 +33,12 @@ class MaterialRepository:
 
     def _path(self, mid):
         # All identifiers come from persisted UUIDs, never filenames or caller paths.
-        if str(uuid4().__class__(mid)) != mid:
-            raise AppError(404, 'MATERIAL_NOT_FOUND', '材料不存在')
-        return self.runtime_dir / (mid + '.bin')
+        try:
+            if not isinstance(mid, str) or str(UUID(mid)) != mid:
+                raise ValueError
+        except (TypeError, ValueError, AttributeError):
+            raise AppError(404, 'MATERIAL_NOT_FOUND', '材料不存在') from None
+        return private_path(self.runtime_dir, mid + '.bin')
 
     async def store(self, user_id, case_id, filename, content: bytes, consent: bool):
         async with self.engine.begin() as c:

@@ -6,7 +6,7 @@ import secrets
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,6 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException
 
 from zhengwu_precheck.api.dependencies import RateLimiter
+from zhengwu_precheck.api.staff_dependencies import staff_api_guard
 from zhengwu_precheck.api.routes import chat, sessions, staff, knowledge, prompts, audits, tickets
 from zhengwu_precheck.api.routes import agent
 from zhengwu_precheck.api.routes import materials
@@ -99,7 +100,8 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
             await system_log_repo.record(event="stopped")
             await repo.close()
 
-    app = FastAPI(title="政务易办示例问答", lifespan=lifespan, docs_url=None, redoc_url=None)
+    app = FastAPI(title="政务易办示例问答", lifespan=lifespan, docs_url=None, redoc_url=None,
+                  dependencies=[Depends(staff_api_guard)])
     app.state.repo, app.state.qa, app.state.settings = repo, service, settings
     app.state.system_log_repo = system_log_repo
     app.state.staff_repo, app.state.staff_auth = staff_repo, StaffAuth(staff_repo, settings.staff_jwt_secret)
@@ -142,6 +144,14 @@ def create_app(settings: Settings | None = None, *, qa=None) -> FastAPI:
 
     @app.exception_handler(AppError)
     async def app_error(request, error):
+        route_path = getattr(request.scope.get("route"), "path", "")
+        if (request.method == "POST" and route_path.startswith("/staff/api/tickets/")
+                and "form" in request.headers.get("content-type", "")):
+            # 默认鉴权先于动作处理器运行；未通过时仍提供无业务内容的原生表单提示。
+            request.state.error_code = error.code
+            return request.app.state.templates.TemplateResponse(
+                request=request, name="staff/ticket_action_error.html",
+                context={"action_error": error}, status_code=error.status)
         return error_response(request, error)
 
     @app.exception_handler(RequestValidationError)
