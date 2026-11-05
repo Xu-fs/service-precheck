@@ -1,2 +1,0 @@
-Git push test 23
-Created at the repository owner request for an alternating push test.
