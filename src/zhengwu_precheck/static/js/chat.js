@@ -78,6 +78,18 @@ function citations(view, items) {
   view.wrapper.append(details);
 }
 
+function openTicket(question, option = null) {
+  try {
+    sessionStorage.setItem('zhengwu.ticket.question', question);
+    if (option) sessionStorage.setItem('zhengwu.ticket.matter', JSON.stringify(option));
+    else sessionStorage.removeItem('zhengwu.ticket.matter');
+  } catch {}
+  if (identityKey === 'anonymous') {
+    ticketAfterLogin = true;
+    $('login-dialog').showModal();
+  } else window.location.assign('/my/tickets#create-title');
+}
+
 function actions(view, items, question = '') {
   const group = document.createElement('div'); group.className = 'action-list';
   for (const item of items || []) {
@@ -88,11 +100,7 @@ function actions(view, items, question = '') {
     const button = document.createElement('button'); button.type = 'button'; button.textContent = item.label; button.disabled = !item.enabled;
     button.addEventListener('click', () => {
       if (item.type === 'create_ticket') {
-        try { sessionStorage.setItem('zhengwu.ticket.question', question); } catch {}
-        if (identityKey === 'anonymous') {
-          ticketAfterLogin = true;
-          $('login-dialog').showModal();
-        } else window.location.assign('/my/tickets#create-title');
+        openTicket(question);
       }
       if (item.type === 'clarify') { $('question').focus(); status('请补充具体事项、适用情形或想了解的要求。'); }
       if (item.type === 'human_service' && !group.querySelector('.human-info')) {
@@ -105,23 +113,13 @@ function actions(view, items, question = '') {
 }
 
 function matterOptions(view, data, question) {
+  view.content.textContent = '请选择工单事项，填写问题后提交给工作人员。';
   const group = document.createElement('div'); group.className = 'action-list';
   for (const option of data.options) {
     const button = document.createElement('button'); button.type = 'button'; button.textContent = option.name;
     const small = document.createElement('small'); small.textContent = option.scenario_name; button.append(small);
-    button.addEventListener('click', async () => {
-      if (busy) return;
-      for (const child of group.children) child.disabled = true;
-      try {
-        await jsonRequest(`/sessions/${session}/matter`, { method: 'POST', body: JSON.stringify({ matter_id: option.matter_id, scenario_id: option.scenario_id, confirmation_token: data.confirmation_token }) });
-        $('matter-label').textContent = option.name;
-        group.remove();
-        const original = question || pendingQuestion;
-        // “切换事项”属于界面控制意图，确认后改为询问新事项，避免重复触发选择。
-        const nextQuestion = !original || /换个事项|切换事项|重新选择事项/.test(original)
-          ? `请介绍${option.name}的示例材料清单。` : original;
-        await sendQuestion(nextQuestion);
-      } catch (error) { status(error.message); for (const child of group.children) child.disabled = false; }
+    button.addEventListener('click', () => {
+      openTicket(question || pendingQuestion, option);
     }); group.append(button);
   }
   view.wrapper.append(group); scrollBottom();
@@ -225,7 +223,7 @@ $('login-open').addEventListener('click', () => $('login-dialog').showModal());
 $('login-close').addEventListener('click', () => $('login-dialog').close());
 $('login-dialog').addEventListener('close', () => {
   ticketAfterLogin = false;
-  try { sessionStorage.removeItem('zhengwu.ticket.question'); } catch {}
+  try { sessionStorage.removeItem('zhengwu.ticket.question'); sessionStorage.removeItem('zhengwu.ticket.matter'); } catch {}
 });
 $('login-form').addEventListener('submit', async event => {
   event.preventDefault(); $('login-error').textContent = '';

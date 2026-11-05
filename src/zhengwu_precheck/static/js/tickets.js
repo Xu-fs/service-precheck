@@ -59,6 +59,13 @@ if (ticketContent && location.hash === '#create-title' && !location.search) {
       matter.value = 'unassigned'; scenario.value = 'manual-triage';
       sessionStorage.removeItem('zhengwu.ticket.question');
     }
+    const selected = JSON.parse(sessionStorage.getItem('zhengwu.ticket.matter') || 'null');
+    if (selected && [...matter.options].some(option => option.value === selected.matter_id)
+        && [...scenario.options].some(option => option.value === selected.scenario_id && option.dataset.matter === selected.matter_id)) {
+      matter.value = selected.matter_id;
+      scenario.value = selected.scenario_id;
+    }
+    sessionStorage.removeItem('zhengwu.ticket.matter');
   } catch {}
 }
 if (matter && scenario) {
