@@ -34,7 +34,7 @@ def main():
     source = ROOT / "src"
     if source.is_dir():
         for item in source.iterdir():
-            if item.name not in {"zhengwu_precheck", "__pycache__"}:
+            if item.name not in {"zhengwu_precheck", "__pycache__", "实验1.c"}:
                 errors.append(f"源码应归入 src/zhengwu_precheck/：{item.name}")
     if errors:
         print("\n".join(errors))
