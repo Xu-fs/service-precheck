@@ -1,0 +1,18 @@
+正常 test_materials.PrecheckTests.test_two_matters_have_independent_complete_and_missing_results 通过
+Executing <Task pending name='Task-1' coro=<AgentRouteTests.asyncSetUp() running at E:\Grade3\GongJi\zhengwu\tests\test_agent_routes.py:23> cb=[_run_until_complete_cb() at C:\Users\26381\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\base_events.py:181] created at C:\Users\26381\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\runners.py:100> took 0.500 seconds
+Executing <Task pending name='starlette.middleware.base.BaseHTTPMiddleware.__call__.<locals>.call_next.<locals>.coro' coro=<TaskHandle._run_coro() running at E:\Grade3\GongJi\zhengwu\.venv\Lib\site-packages\anyio\_core\_tasks.py:327> wait_for=<Future pending cb=[Task.task_wakeup()] created at C:\Users\26381\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\base_events.py:448> cb=[TaskGroup._spawn.<locals>.task_done() at E:\Grade3\GongJi\zhengwu\.venv\Lib\site-packages\anyio\_backends\_asyncio.py:870] created at E:\Grade3\GongJi\zhengwu\.venv\Lib\site-packages\anyio\_backends\_asyncio.py:944> took 0.156 seconds
+正常 test_agent_routes.AgentRouteTests.test_real_handlers_prepare_confirm_create_query 通过
+正常 test_guide_qa.GuideQATests.test_answer_is_exact_quote_with_verified_citation 通过
+边界 test_materials.PrecheckTests.test_rule_change_and_historical_date_exception_are_explicit 通过
+边界 test_materials.PrecheckTests.test_unreadable_present_file_is_not_claimed_missing 通过
+边界 test_confirmed_tickets.ConfirmedTicketTests.test_concurrent_and_new_key_repetition_creates_once 通过
+对抗 test_agent_loop.AgentLoopTests.test_bounded_loop_rejects_unknown_and_never_invents_success 通过
+对抗 test_agent_loop.AgentLoopTests.test_free_model_claim_is_not_shown_without_tool_evidence 通过
+对抗 test_guide_qa.GuideQATests.test_fabricated_quote_unknown_id_and_malformed_response_refuse 通过
+权限 test_materials.MaterialTests.test_private_storage_requires_owner_and_explicit_consent 通过
+权限 test_staff.StaffTests.test_engineer_is_not_business_administrator 通过
+权限 test_confirmed_tickets.ConfirmedTicketTests.test_unknown_matter_is_not_visible_to_ordinary_wildcard 通过
+故障 test_materials.MaterialTests.test_untrusted_processing_fails_closed_and_is_not_missing_material 通过
+Executing <Task pending name='Task-180' coro=<ExtractionTests.test_worker_timeout_reaps_process() running at E:\Grade3\GongJi\zhengwu\tests\test_materials.py:128> wait_for=<Future pending cb=[Task.task_wakeup()] created at C:\Users\26381\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\base_events.py:448> cb=[_run_until_complete_cb() at C:\Users\26381\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\base_events.py:181] created at C:\Users\26381\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\asyncio\runners.py:100> took 0.125 seconds
+故障 test_materials.ExtractionTests.test_worker_timeout_reaps_process 通过
+故障 test_agent_loop.AgentLoopTests.test_model_cannot_replace_identity_or_loop_forever 通过

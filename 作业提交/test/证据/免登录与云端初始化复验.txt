@@ -1,0 +1,4 @@
+2026-11-08
+执行：python -X utf8 -m unittest test_workflow_demo test_cloud_demo_setup
+结果：Ran 7 tests in 62.502s；OK。
+测试使用隔离运行库及虚构案例。公网检查另见公网免登录验证.json及截图。

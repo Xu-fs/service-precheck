@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><style>body{font:18px "Microsoft YaHei",sans-serif;color:#172c3d;background:#f4f6f8;padding:40px;max-width:1150px;margin:auto}h1{font-size:32px}section{background:white;border:1px solid #ccd5df;border-radius:8px;margin:20px 0;padding:22px}h2{font-size:23px}p{line-height:1.6}code{font-size:14px;overflow-wrap:anywhere}pre{white-space:pre-wrap;font-size:13px;color:#46546a}</style><h1>政务易办 权限场景测试执行记录</h1><p>2026年11月7日 · 自动化执行记录可视化 · 这是实际测试日志的展示页，不是业务系统界面截图。虚构数据；模型相关测试使用替身。</p><section><h2>1 通过</h2><p><b>输入与操作</b> 匿名、其他用户、未授权上传及跨人读取</p><p><b>预期结果</b> 全部拒绝，所有者明确授权后可读</p><p><b>实际结果</b> 通过，耗时 2.562 秒</p><code>test_materials.MaterialTests.test_private_storage_requires_owner_and_explicit_consent</code><pre>test_private_storage_requires_owner_and_explicit_consent (test_materials.MaterialTests.test_private_storage_requires_owner_and_explicit_consent) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 2.559s
+
+OK
+</pre></section><section><h2>2 通过</h2><p><b>输入与操作</b> 工程师访问业务内容</p><p><b>预期结果</b> 技术岗位不自动取得业务权限</p><p><b>实际结果</b> 通过，耗时 10.219 秒</p><code>test_staff.StaffTests.test_engineer_is_not_business_administrator</code><pre>test_engineer_is_not_business_administrator (test_staff.StaffTests.test_engineer_is_not_business_administrator) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 10.210s
+
+OK
+</pre></section><section><h2>3 通过</h2><p><b>输入与操作</b> 普通通配事项岗位查询未知事项队列</p><p><b>预期结果</b> 没有明确未知事项授权时不可见</p><p><b>实际结果</b> 通过，耗时 7.687 秒</p><code>test_confirmed_tickets.ConfirmedTicketTests.test_unknown_matter_is_not_visible_to_ordinary_wildcard</code><pre>test_unknown_matter_is_not_visible_to_ordinary_wildcard (test_confirmed_tickets.ConfirmedTicketTests.test_unknown_matter_is_not_visible_to_ordinary_wildcard) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 7.693s
+
+OK
+</pre></section>

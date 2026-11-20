@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ROOT_FILES = {"README.md", "LICENSE", ".gitignore", "CHANGELOG.md",
               "CONTRIBUTING.md", "requirements.txt", "AGENTS.md", "启动网页.bat"}
 ROOT_DIRS = {"src", "docs", "tests", "examples", "scripts", "config", "data", ".github"}
+OPTIONAL_ROOT_DIRS = {"作业提交"}
 LOCAL_DIRS = {".git", ".venv", "venv", ".workbuddy-ai", "__pycache__", ".pytest_cache",
               ".mypy_cache", ".ruff_cache", ".idea", ".vscode", "htmlcov", "build", "dist"}
 LOCAL_FILES = {".env", ".coverage", ".DS_Store", "Thumbs.db"}
@@ -21,7 +22,7 @@ REQUIRED = ROOT_FILES | {
 def main():
     errors = []
     for item in ROOT.iterdir():
-        allowed = ROOT_DIRS | LOCAL_DIRS if item.is_dir() else ROOT_FILES | LOCAL_FILES
+        allowed = ROOT_DIRS | OPTIONAL_ROOT_DIRS | LOCAL_DIRS if item.is_dir() else ROOT_FILES | LOCAL_FILES
         local_file = item.is_file() and (item.name.startswith(".env.") or item.suffix == ".log")
         if item.name not in allowed and not local_file:
             errors.append(f"超出根目录框架：{item.name}")
@@ -39,7 +40,8 @@ def main():
     if errors:
         print("\n".join(errors))
         return 1
-    print(f"结构检查通过：{len(ROOT_DIRS)} 个项目目录，{len(REQUIRED)} 个必需文件。")
+    directory_count = len(ROOT_DIRS) + sum((ROOT / name).is_dir() for name in OPTIONAL_ROOT_DIRS)
+    print(f"结构检查通过：{directory_count} 个项目目录，{len(REQUIRED)} 个必需文件。")
     return 0
 
 

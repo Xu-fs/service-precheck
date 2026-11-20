@@ -68,6 +68,43 @@ class WorkflowDemoTests(unittest.IsolatedAsyncioTestCase):
 
 
 class WorkflowDemoRouteTests(unittest.IsolatedAsyncioTestCase):
+    async def test_guest_can_finish_both_cases_without_login_and_cannot_access_other_visitors(self):
+        import re
+        from test_chat import FakeQA
+        from zhengwu_precheck.main import create_app
+        with tempfile.TemporaryDirectory() as directory:
+            app = create_app(Settings(runtime_dir=Path(directory)), qa=FakeQA())
+            async with app.router.lifespan_context(app):
+                transport = httpx.ASGITransport(app=app)
+                async with httpx.AsyncClient(transport=transport, base_url='http://testserver') as guest, \
+                        httpx.AsyncClient(transport=transport, base_url='http://testserver') as other:
+                    page = await guest.get('/examples/workflow')
+                    self.assertIn('id="demo-play"', page.text)
+                    self.assertNotIn('请先登录', page.text)
+                    token = re.search(r'name="csrf-token" content="([^"]+)"', page.text)[1]
+                    headers = {'X-CSRF-Token': token}
+                    await other.get('/examples/workflow')
+                    denied = await guest.post('/examples/api/workflows', json={
+                        'preset_id': 'business-address', 'idempotency_key': 'missing-csrf-test'})
+                    self.assertEqual(denied.status_code, 403)
+                    for preset in ('residence-supplement', 'business-address'):
+                        response = await guest.post('/examples/api/workflows', headers=headers,
+                            json={'preset_id': preset, 'idempotency_key': 'guest-' + preset})
+                        self.assertEqual(response.status_code, 200, response.text)
+                        run_id = response.json()['id']
+                        self.assertEqual((await other.get('/examples/api/workflows/' + run_id)).status_code, 404)
+                        for step in range(11):
+                            response = await guest.post('/examples/api/workflows/' + run_id + '/next',
+                                headers=headers, json={'expected_step': step})
+                            self.assertEqual(response.status_code, 200, response.text)
+                        self.assertEqual(response.json()['ticket']['close_reason'], 'confirmed_resolved')
+                    self.assertEqual(len((await guest.get('/examples/api/workflows')).json()), 2)
+                    self.assertEqual((await other.get('/examples/api/workflows')).json(), [])
+                    self.assertNotIn('zw_auth', guest.cookies)
+                    self.assertEqual((await guest.get('/tickets')).status_code, 401)
+                    async with app.state.repo.engine.connect() as connection:
+                        self.assertEqual((await connection.execute(text('SELECT COUNT(*) FROM tickets'))).scalar(), 0)
+
     async def test_page_offers_both_modes_and_demo_never_advances_working_tickets(self):
         from test_chat import FakeQA
         from zhengwu_precheck.main import create_app
@@ -77,7 +114,7 @@ class WorkflowDemoRouteTests(unittest.IsolatedAsyncioTestCase):
                 async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
                     page = await client.get('/examples/workflow')
                     self.assertEqual(page.status_code, 200, page.text)
-                    self.assertIn('登录', page.text)
+                    self.assertIn('id="demo-play"', page.text)
                     await app.state.repo.create_user('workflow-viewer', 'workflow-test-password')
                     await client.get('/')
                     boot = (await client.get('/bootstrap')).json()

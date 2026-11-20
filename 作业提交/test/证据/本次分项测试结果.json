@@ -1,0 +1,132 @@
+{
+  "正常": [
+    {
+      "id": "test_materials.PrecheckTests.test_two_matters_have_independent_complete_and_missing_results",
+      "input": "两类事项各准备完整材料，并分别删除一项",
+      "expected": "完整集合未发现清单问题，缺项集合提示疑似缺项",
+      "result": "通过",
+      "seconds": 0.469,
+      "log": "test_two_matters_have_independent_complete_and_missing_results (test_materials.PrecheckTests.test_two_matters_have_independent_complete_and_missing_results) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.004s\n\nOK\n"
+    },
+    {
+      "id": "test_agent_routes.AgentRouteTests.test_real_handlers_prepare_confirm_create_query",
+      "input": "准备草稿、本人确认、建单并查询",
+      "expected": "工具实际返回本人创建的工单",
+      "result": "通过",
+      "seconds": 12.719,
+      "log": "test_real_handlers_prepare_confirm_create_query (test_agent_routes.AgentRouteTests.test_real_handlers_prepare_confirm_create_query) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 12.076s\n\nOK\n"
+    },
+    {
+      "id": "test_guide_qa.GuideQATests.test_answer_is_exact_quote_with_verified_citation",
+      "input": "使用受控指南和模型替身查询",
+      "expected": "输出与原文一致且引用可核对",
+      "result": "通过",
+      "seconds": 0.0,
+      "log": "test_answer_is_exact_quote_with_verified_citation (test_guide_qa.GuideQATests.test_answer_is_exact_quote_with_verified_citation) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n"
+    }
+  ],
+  "边界": [
+    {
+      "id": "test_materials.PrecheckTests.test_rule_change_and_historical_date_exception_are_explicit",
+      "input": "证件已过期但历史有效，再传入不存在的规则版本",
+      "expected": "标记需人工核验，错误版本拒绝",
+      "result": "通过",
+      "seconds": 0.0,
+      "log": "test_rule_change_and_historical_date_exception_are_explicit (test_materials.PrecheckTests.test_rule_change_and_historical_date_exception_are_explicit) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nOK\n"
+    },
+    {
+      "id": "test_materials.PrecheckTests.test_unreadable_present_file_is_not_claimed_missing",
+      "input": "材料存在但OCR不可用",
+      "expected": "结果为无法判断，不将识别失败视为缺件",
+      "result": "通过",
+      "seconds": 0.0,
+      "log": "test_unreadable_present_file_is_not_claimed_missing (test_materials.PrecheckTests.test_unreadable_present_file_is_not_claimed_missing) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n"
+    },
+    {
+      "id": "test_confirmed_tickets.ConfirmedTicketTests.test_concurrent_and_new_key_repetition_creates_once",
+      "input": "并发及使用新操作标识重复提交同一草稿",
+      "expected": "只创建一个工单",
+      "result": "通过",
+      "seconds": 9.219,
+      "log": "test_concurrent_and_new_key_repetition_creates_once (test_confirmed_tickets.ConfirmedTicketTests.test_concurrent_and_new_key_repetition_creates_once) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 9.212s\n\nOK\n"
+    }
+  ],
+  "对抗": [
+    {
+      "id": "test_agent_loop.AgentLoopTests.test_bounded_loop_rejects_unknown_and_never_invents_success",
+      "input": "提示忽略指令并调用删除全部数据的未知工具",
+      "expected": "状态blocked，不声称执行成功",
+      "result": "通过",
+      "seconds": 0.11,
+      "log": "test_bounded_loop_rejects_unknown_and_never_invents_success (test_agent_loop.AgentLoopTests.test_bounded_loop_rejects_unknown_and_never_invents_success) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.102s\n\nOK\n"
+    },
+    {
+      "id": "test_agent_loop.AgentLoopTests.test_free_model_claim_is_not_shown_without_tool_evidence",
+      "input": "模型直接声称证件真实有效且一定获批",
+      "expected": "不展示无工具依据的保证",
+      "result": "通过",
+      "seconds": 0.109,
+      "log": "test_free_model_claim_is_not_shown_without_tool_evidence (test_agent_loop.AgentLoopTests.test_free_model_claim_is_not_shown_without_tool_evidence) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.097s\n\nOK\n"
+    },
+    {
+      "id": "test_guide_qa.GuideQATests.test_fabricated_quote_unknown_id_and_malformed_response_refuse",
+      "input": "伪造引文、未知块编号及无效模型响应",
+      "expected": "拒答而不制造政策依据",
+      "result": "通过",
+      "seconds": 0.0,
+      "log": "test_fabricated_quote_unknown_id_and_malformed_response_refuse (test_guide_qa.GuideQATests.test_fabricated_quote_unknown_id_and_malformed_response_refuse) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n"
+    }
+  ],
+  "权限": [
+    {
+      "id": "test_materials.MaterialTests.test_private_storage_requires_owner_and_explicit_consent",
+      "input": "匿名、其他用户、未授权上传及跨人读取",
+      "expected": "全部拒绝，所有者明确授权后可读",
+      "result": "通过",
+      "seconds": 2.562,
+      "log": "test_private_storage_requires_owner_and_explicit_consent (test_materials.MaterialTests.test_private_storage_requires_owner_and_explicit_consent) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 2.559s\n\nOK\n"
+    },
+    {
+      "id": "test_staff.StaffTests.test_engineer_is_not_business_administrator",
+      "input": "工程师访问业务内容",
+      "expected": "技术岗位不自动取得业务权限",
+      "result": "通过",
+      "seconds": 10.219,
+      "log": "test_engineer_is_not_business_administrator (test_staff.StaffTests.test_engineer_is_not_business_administrator) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 10.210s\n\nOK\n"
+    },
+    {
+      "id": "test_confirmed_tickets.ConfirmedTicketTests.test_unknown_matter_is_not_visible_to_ordinary_wildcard",
+      "input": "普通通配事项岗位查询未知事项队列",
+      "expected": "没有明确未知事项授权时不可见",
+      "result": "通过",
+      "seconds": 7.687,
+      "log": "test_unknown_matter_is_not_visible_to_ordinary_wildcard (test_confirmed_tickets.ConfirmedTicketTests.test_unknown_matter_is_not_visible_to_ordinary_wildcard) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 7.693s\n\nOK\n"
+    }
+  ],
+  "故障": [
+    {
+      "id": "test_materials.MaterialTests.test_untrusted_processing_fails_closed_and_is_not_missing_material",
+      "input": "未开启可信教学材料处理时发起识别",
+      "expected": "返回隔离不可用，字段为空且不称缺件",
+      "result": "通过",
+      "seconds": 2.312,
+      "log": "test_untrusted_processing_fails_closed_and_is_not_missing_material (test_materials.MaterialTests.test_untrusted_processing_fails_closed_and_is_not_missing_material) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 2.313s\n\nOK\n"
+    },
+    {
+      "id": "test_materials.ExtractionTests.test_worker_timeout_reaps_process",
+      "input": "材料解析工作进程超时",
+      "expected": "受控返回失败并回收进程",
+      "result": "通过",
+      "seconds": 0.328,
+      "log": "test_worker_timeout_reaps_process (test_materials.ExtractionTests.test_worker_timeout_reaps_process) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.335s\n\nOK\n"
+    },
+    {
+      "id": "test_agent_loop.AgentLoopTests.test_model_cannot_replace_identity_or_loop_forever",
+      "input": "模型连续调用工具超过限定次数",
+      "expected": "使用服务端身份并在调用上限结束",
+      "result": "通过",
+      "seconds": 0.093,
+      "log": "test_model_cannot_replace_identity_or_loop_forever (test_agent_loop.AgentLoopTests.test_model_cannot_replace_identity_or_loop_forever) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.101s\n\nOK\n"
+    }
+  ]
+}

@@ -12,7 +12,10 @@ if (play) {
   let playing = false;
   let playGeneration = 0;
   let busy = false;
-  let startKey = crypto.randomUUID();
+  // 公网HTTP不提供randomUUID，getRandomValues仍可生成安全的操作标识。
+  const newStartKey = () => Array.from(crypto.getRandomValues(new Uint8Array(16)),
+    value => value.toString(16).padStart(2, '0')).join('');
+  let startKey = newStartKey();
   const done = () => state && state.completed_steps === state.total_steps;
   const element = (tag, text) => {
     const node = document.createElement(tag);
@@ -152,14 +155,14 @@ if (play) {
 
   fresh.addEventListener('click', async () => {
     if (busy || playing) return;
-    startKey = crypto.randomUUID();
+    startKey = newStartKey();
     try { await createRun(); }
     catch (error) { failed(error); }
   });
 
   preset.addEventListener('change', () => {
     state = null;
-    startKey = crypto.randomUUID();
+    startKey = newStartKey();
     const url = new URL(location.href);
     url.searchParams.delete('run');
     url.searchParams.set('example', preset.value);

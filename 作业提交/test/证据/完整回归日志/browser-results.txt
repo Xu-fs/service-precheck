@@ -1,0 +1,87 @@
+Traceback (most recent call last):
+  File "E:\Grade3\GongJi\zhengwu\tests\browser_chat.py", line 25, in <module>
+    expect(page.get_by_text("正在检索办事指南……", exact=True).last).to_be_visible()
+  File "E:\Grade3\GongJi\zhengwu\.venv\Lib\site-packages\playwright\sync_api\_generated.py", line 14811, in to_be_visible
+    self._sync(
+  File "E:\Grade3\GongJi\zhengwu\.venv\Lib\site-packages\playwright\_impl\_sync_base.py", line 111, in _sync
+    return task.result()
+           ^^^^^^^^^^^^^
+  File "E:\Grade3\GongJi\zhengwu\.venv\Lib\site-packages\playwright\_impl\_assertions.py", line 852, in to_be_visible
+    await self._expect_impl(
+  File "E:\Grade3\GongJi\zhengwu\.venv\Lib\site-packages\playwright\_impl\_assertions.py", line 128, in _expect_impl
+    _record_soft_or_raise(
+  File "E:\Grade3\GongJi\zhengwu\.venv\Lib\site-packages\playwright\_impl\_assertions.py", line 60, in _record_soft_or_raise
+    raise error
+AssertionError: Locator expected to be visible
+Actual value: None
+Error: element(s) not found 
+Call log:
+  - Expect "to_be_visible" get_by_text("正在检索办事指南……", exact=True).last with timeout 5000ms
+  - waiting for get_by_text("正在检索办事指南……", exact=True).last
+
+Aria snapshot:
+- banner:
+  - link "政务易办首页":
+    - /url: /
+    - text: 政务易办 办事指南咨询
+  - link "材料准备与人工协作":
+    - /url: /assistant
+  - link "我的工单":
+    - /url: /my/tickets
+  - text: 公开咨询无需登录
+  - button "登录"
+  - link "工作人员登录":
+    - /url: /staff/login
+- complementary "咨询说明":
+  - text: 办事前，先有依据
+  - heading "把材料准备 问清楚。" [level=1]
+  - paragraph: 从指南中找答案， 每条回答都可以核对来源。
+  - text: 本次咨询
+  - strong: 尚未确认事项
+  - button "选择或切换事项"
+  - strong: （示例）
+  - paragraph: 示例事项使用虚构指南，便民服务提供官方公开指引。请勿输入身份证号、手机号等个人信息。
+  - paragraph: 咨询不代表正式申请、受理或审批。
+- main:
+  - strong: 指南问答
+  - text: （示例）
+  - button "新建咨询"
+  - article: 你 示例申请表有哪些字段？
+  - article:
+    - text: 政务易办 请选择工单事项，填写问题后提交给工作人员。
+    - button "居住证申领 租赁居住（示例）"
+    - button "个体工商户设立登记 普通设立（示例）"
+  - status
+  - group "快捷服务":
+    - link "提交工单":
+      - /url: /my/tickets#create-title
+    - button "身份证补办"
+    - button "便民场馆开放"
+  - text: 你的问题
+  - textbox "你的问题":
+    - /placeholder: 描述你想了解的材料要求……
+  - text: 0 / 2000
+  - button "发送问题"
+  - paragraph:
+    - text: 指南咨询仅作参考；实际办理请以受理部门现行规定为准。
+    - link "我的人工工单":
+      - /url: /my/tickets
+    - text: ·
+    - link "材料上传与辅助预检":
+      - /url: /assistant
+    - text: 。
+- group:
+  - text: 站内消息
+  - paragraph: 工单动态与办理状态
+  - status: 登录后查看工单消息
+  - button "登录查看"
+- dialog "登录个人咨询":
+  - button "关闭登录窗口": ×
+  - heading "登录个人咨询" [level=2]
+  - paragraph: 使用维护人员创建的独立账号。公开咨询仍可免登录。
+  - text: 账号
+  - textbox "账号"
+  - text: 密码
+  - textbox "密码"
+  - alert
+  - button "登录"

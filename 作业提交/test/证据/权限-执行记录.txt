@@ -1,0 +1,22 @@
+test_private_storage_requires_owner_and_explicit_consent (test_materials.MaterialTests.test_private_storage_requires_owner_and_explicit_consent) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 2.559s
+
+OK
+
+
+test_engineer_is_not_business_administrator (test_staff.StaffTests.test_engineer_is_not_business_administrator) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 10.210s
+
+OK
+
+
+test_unknown_matter_is_not_visible_to_ordinary_wildcard (test_confirmed_tickets.ConfirmedTicketTests.test_unknown_matter_is_not_visible_to_ordinary_wildcard) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 7.693s
+
+OK

@@ -1,0 +1,130 @@
+{
+  "case_id": "DEMO-EVENT-001",
+  "provenance": "teaching_simulation",
+  "real_business_verified": false,
+  "observed_interview_quote": false,
+  "note": "所有个案次数、日期和耗时由编制者设计，仅作教学模拟。f00和f01仅提供总体目标与流程背景，不提供这些个案数字。",
+  "scope": "居住证申领材料准备与辅助核对示例，不判断资格或审批结果",
+  "visits": 3,
+  "correction_rounds": 2,
+  "staff_roles": 3,
+  "segments": [
+    {
+      "visit": 1,
+      "stage": "咨询",
+      "role": "窗口岗",
+      "start": "2026-11-02T09:00",
+      "end": "2026-11-02T09:14",
+      "minutes": 14
+    },
+    {
+      "visit": 1,
+      "stage": "首次材料提交",
+      "role": "窗口岗",
+      "start": "2026-11-02T09:14",
+      "end": "2026-11-02T09:22",
+      "minutes": 8
+    },
+    {
+      "visit": 1,
+      "stage": "首次完整性预检",
+      "role": "窗口岗",
+      "start": "2026-11-02T09:22",
+      "end": "2026-11-02T09:32",
+      "minutes": 10
+    },
+    {
+      "visit": 1,
+      "stage": "首次专业核对",
+      "role": "审核岗",
+      "start": "2026-11-02T10:00",
+      "end": "2026-11-02T10:15",
+      "minutes": 15
+    },
+    {
+      "visit": 1,
+      "stage": "第一次补正告知",
+      "role": "窗口岗",
+      "start": "2026-11-02T10:15",
+      "end": "2026-11-02T10:21",
+      "minutes": 6
+    },
+    {
+      "visit": 2,
+      "stage": "第一次补正材料提交",
+      "role": "窗口岗",
+      "start": "2026-11-03T09:00",
+      "end": "2026-11-03T09:10",
+      "minutes": 10
+    },
+    {
+      "visit": 2,
+      "stage": "第二次完整性预检",
+      "role": "窗口岗",
+      "start": "2026-11-03T09:10",
+      "end": "2026-11-03T09:18",
+      "minutes": 8
+    },
+    {
+      "visit": 2,
+      "stage": "第二次专业核对",
+      "role": "审核岗",
+      "start": "2026-11-03T10:00",
+      "end": "2026-11-03T10:12",
+      "minutes": 12
+    },
+    {
+      "visit": 2,
+      "stage": "第二次补正告知",
+      "role": "窗口岗",
+      "start": "2026-11-03T10:12",
+      "end": "2026-11-03T10:17",
+      "minutes": 5
+    },
+    {
+      "visit": 3,
+      "stage": "第二次补正材料提交",
+      "role": "窗口岗",
+      "start": "2026-11-04T09:00",
+      "end": "2026-11-04T09:08",
+      "minutes": 8
+    },
+    {
+      "visit": 3,
+      "stage": "第三次完整性预检",
+      "role": "窗口岗",
+      "start": "2026-11-04T09:08",
+      "end": "2026-11-04T09:14",
+      "minutes": 6
+    },
+    {
+      "visit": 3,
+      "stage": "第三次专业核对",
+      "role": "审核岗",
+      "start": "2026-11-04T09:30",
+      "end": "2026-11-04T09:40",
+      "minutes": 10
+    },
+    {
+      "visit": 3,
+      "stage": "核对结果通知",
+      "role": "热线岗",
+      "start": "2026-11-04T09:40",
+      "end": "2026-11-04T09:45",
+      "minutes": 5
+    }
+  ],
+  "metrics": {
+    "staff_processing_minutes": 117,
+    "role_minutes": {
+      "窗口岗": 75,
+      "审核岗": 37,
+      "热线岗": 5
+    },
+    "onsite_minutes": 203,
+    "onsite_wait_minutes": 86,
+    "offsite_interval_minutes": 2722,
+    "total_nonprocessing_minutes": 2808,
+    "elapsed_minutes": 2925
+  }
+}

@@ -1,0 +1,21 @@
+{% extends "staff/base.html" %}
+{% block content %}
+<p><a href="/staff/audits">返回审计列表</a></p>
+<h1>审计记录详情</h1>
+<dl><dt>原始记录号</dt><dd>{{ record.id }}</dd><dt>办事人标识</dt><dd>{{ record.person_label }}</dd><dt>事项快照</dt><dd>{{ record.matter_id or '未关联可见事项' }}</dd><dt>原始状态</dt><dd>{{ record.outcome }}</dd></dl>
+{% if record.missing_evidence %}<p class="notice">系统记录：缺少依据，需人工核实。</p>{% endif %}
+{% if record.version_conflict %}<p class="notice">系统记录：规则版本冲突，需人工处理。</p>{% endif %}
+{% if record.kind == 'message' %}
+{% if record.question %}<h2>原始问题</h2><p class="prewrap">{{ record.question }}</p>{% endif %}
+<h2>原始回答</h2><p class="prewrap">{{ record.content }}</p>
+<section class="panel"><h2>接纳时版本快照</h2>{% if record.knowledge_snapshot %}{% set snapshot = record.knowledge_snapshot %}<p>以下版本在请求接纳时冻结，不按当前发布内容或提示词回填。</p><dl><dt>系统模板版本</dt><dd>v{{ snapshot.prompt_version }} · {{ snapshot.prompt_version_id }}</dd><dt>适用事项与情形</dt><dd>{{ snapshot.matter_id }} / {{ snapshot.scenario_id }}</dd><dt>知识接管状态</dt><dd>{{ '后台版本管理' if snapshot.managed else '尚未由后台接管' }}</dd><dt>版本冲突</dt><dd>{{ '接纳时存在冲突，需人工处理' if snapshot.conflict else '接纳时无版本冲突' }}</dd></dl><h3>发布包引用</h3><ul>{% for identifier in snapshot.release_ids %}<li>{{ identifier }}</li>{% else %}<li>接纳时没有适用的已生效发布包。</li>{% endfor %}</ul><h3>知识版本引用</h3><ul>{% for identifier in snapshot.version_ids %}<li>{{ identifier }}</li>{% else %}<li>接纳时没有保存适用的公开知识版本。</li>{% endfor %}</ul>{% else %}<p>此旧记录未保存接纳时版本快照，不使用当前模板或知识版本回填。</p>{% endif %}</section>
+<h2>当时引用依据</h2>{% for citation in record.citations %}<article><p>{{ citation.filename_snapshot }} · 版本 {{ citation.rule_version_snapshot }}{% if citation.version_id %} · 知识版本 {{ citation.version_id }}{% endif %}{% if citation.page_no %} · 第{{ citation.page_no }}页{% endif %}{% if citation.chunk_no %} · 片段{{ citation.chunk_no }}{% endif %}</p><blockquote>{{ citation.quote }}</blockquote></article>{% else %}<p>此条记录没有保存可见引用依据。</p>{% endfor %}
+{% else %}<h2>拒绝访问事件</h2><p>动作：{{ record.action }}；操作者编号：{{ record.actor_id or '未记录' }}。拒绝事件不等于已经发生越权，需人工核实。</p>{% endif %}
+<h2>风险标记</h2>
+{% for flag in record.flags %}<article><p>{{ flag_options.get(flag.kind,flag.kind) }} · {{ flag.actor_id }}</p><p>{{ flag.reason }}</p></article>{% else %}<p>暂无人工标记。</p>{% endfor %}
+<form method="post" action="/staff/api/audits/{{ record.id }}/flags"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>风险类别 <select name="kind" required>{% for value,label in flag_options.items() %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></label><label>标记原因 <textarea name="reason" required maxlength="2000"></textarea></label><button type="submit">追加风险标记</button></form>
+<h2>人工复核记录</h2>
+{% for review in record.reviews %}<article><p>{{ decision_options.get(review.decision,review.decision) }} · {{ review.actor_id }}</p><p>{{ review.comment }}</p></article>{% else %}<p>暂无人工复核。</p>{% endfor %}
+<form method="post" action="/staff/api/audits/{{ record.id }}/reviews"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>复核结论 <select name="decision" required>{% for value,label in decision_options.items() %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></label><label>复核意见 <textarea name="comment" required maxlength="2000"></textarea></label><button type="submit">追加复核记录</button></form>
+<p>标记和复核均追加留痕，不会覆盖原始回答或安全事件，也不构成审批结论。</p>
+{% endblock %}

@@ -1,0 +1,22 @@
+test_rule_change_and_historical_date_exception_are_explicit (test_materials.PrecheckTests.test_rule_change_and_historical_date_exception_are_explicit) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+OK
+
+
+test_unreadable_present_file_is_not_claimed_missing (test_materials.PrecheckTests.test_unreadable_present_file_is_not_claimed_missing) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+
+
+test_concurrent_and_new_key_repetition_creates_once (test_confirmed_tickets.ConfirmedTicketTests.test_concurrent_and_new_key_repetition_creates_once) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 9.212s
+
+OK

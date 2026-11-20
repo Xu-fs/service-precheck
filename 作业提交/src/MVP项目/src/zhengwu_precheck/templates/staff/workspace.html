@@ -1,0 +1,12 @@
+{% extends "staff/base.html" %}
+{% block content %}
+{% if workspaces|length > 1 %}
+<section class="panel"><h2>已授权岗位职责</h2><ul class="feature-list">{% for workspace in workspaces %}<li><span class="check">✓</span><div><strong>{{ workspace.title }}</strong><p>{{ workspace.description }}</p></div></li>{% endfor %}</ul></section>
+{% endif %}
+<section class="workspace-grid" aria-label="本岗位功能入口">
+  {% for item in modules %}
+  <a class="workspace-card" href="/staff/{{ item.slug }}"><span class="section-kicker">{{ '主要工作' if loop.first else '相关工作' }}</span><h2>{{ item.name }}</h2><p>{{ item.description }}</p><span class="workspace-card-action">{{ '查看技术运行状态' if item.slug == 'system' else '进入' + item.name }} <span aria-hidden="true">→</span></span></a>
+  {% endfor %}
+</section>
+<section class="panel"><div class="panel-heading"><div><h2>我的岗位与事项范围</h2><p>仅显示当前账号已获授权的岗位和事项。</p></div><span class="status-pill">当前授权</span></div><div class="table-scroll"><table><thead><tr><th>岗位</th><th>事项范围</th></tr></thead><tbody>{% for grant in identity.grants %}<tr><td><strong>{{ grant.role_name }}</strong></td><td>{{ grant.matter_name }}</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

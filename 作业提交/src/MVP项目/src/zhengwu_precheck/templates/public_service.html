@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="description" content="{{ guide.summary }}">
+  <title>{{ guide.title }} · 政务易办</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/css/public_services.css">
+</head>
+<body>
+  <a class="skip-link" href="#guide-content">跳到指南正文</a>
+  <header class="service-header">
+    <a class="service-brand" href="/"><span aria-hidden="true">易</span>政务易办</a>
+    <a class="back-link" href="/">返回咨询</a>
+  </header>
+  <main class="service-main">
+    <nav class="service-tabs" aria-label="便民服务">
+      {% for item in guides %}<a href="/services/{{ item.id }}" {% if item.id == guide.id %}aria-current="page"{% endif %}>{{ item.title }}</a>{% endfor %}
+    </nav>
+    <header class="guide-heading">
+      <p class="guide-scope">全国通用指南</p>
+      <h1>{{ guide.title }}</h1>
+      <p class="guide-summary">{{ guide.summary }}</p>
+      <p class="guide-updated">资料核对日期：<time datetime="2026-10-31">2026-10-31</time></p>
+    </header>
+    <div class="guide-layout">
+      <aside class="guide-directory">
+        <h2>本页内容</h2>
+        <nav aria-label="页面目录">
+          {% for section in guide.sections %}<a href="#{{ section.id }}">{{ section.title }}</a>{% endfor %}
+          <a href="#sources">信息来源</a>
+        </nav>
+        <p>{{ guide.scope_note }}</p>
+      </aside>
+      <article class="guide-content" id="guide-content">
+        {% for section in guide.sections %}
+        <section id="{{ section.id }}" class="guide-section" aria-labelledby="heading-{{ section.id }}">
+          <h2 id="heading-{{ section.id }}">{{ section.title }}</h2>
+          {% if section.intro %}<p class="section-intro">{{ section.intro }}</p>{% endif %}
+          {% if section.ordered %}<ol class="guide-steps">{% else %}<ul class="guide-items">{% endif %}
+            {% for item in section['items'] %}<li><h3>{{ item.title }}</h3><p>{{ item.text }}</p></li>{% endfor %}
+          {% if section.ordered %}</ol>{% else %}</ul>{% endif %}
+        </section>
+        {% endfor %}
+        <section id="sources" class="guide-section guide-sources" aria-labelledby="heading-sources">
+          <h2 id="heading-sources">信息来源</h2>
+          <p>根据下列官方公开资料整理。政策和服务安排可能调整，办理或到馆前请核对属地最新公告。</p>
+          <ul>{% for source in guide.sources %}<li><a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ source.title }}</a><span>{{ source.publisher }}{% if source.date %} · {{ source.date }}{% endif %}</span></li>{% endfor %}</ul>
+        </section>
+      </article>
+    </div>
+    <footer class="service-footer"><a href="/">返回咨询</a><p>本页提供办事与到馆参考；实际办理、预约和受理通过相应官方渠道进行。</p></footer>
+  </main>
+</body>
+</html>

@@ -1,4 +1,4 @@
-"""已登录办事人的独立示例演示入口；不签发或替换任何工作人员登录身份。"""
+"""访客可直接开始的独立示例演示；不签发任何业务登录身份。"""
 import secrets
 
 from fastapi import APIRouter, Request
@@ -25,8 +25,7 @@ class NextStep(BaseModel):
 
 async def viewer(request):
     who = await principal(request)
-    if not who['user_id']:
-        raise AppError(401, 'LOGIN_REQUIRED', '请先使用办事人账号登录，再开始演示')
+    who['demo_owner_id'] = who['user_id'] or 'anon:' + who['anonymous_hash']
     return who
 
 
@@ -57,24 +56,24 @@ async def page(request: Request):
 async def start(request: Request, body: StartDemo):
     csrf(request)
     who = await viewer(request)
-    await request.app.state.shared_limiter.check('workflow-demo:' + who['user_id'], 6, 60)
-    return await request.app.state.workflow_demo.create(who['user_id'], body.preset_id, body.idempotency_key)
+    await request.app.state.shared_limiter.check('workflow-demo:' + who['demo_owner_id'], 6, 60)
+    return await request.app.state.workflow_demo.create(who['demo_owner_id'], body.preset_id, body.idempotency_key)
 
 
 @router.get('/examples/api/workflows/{run_id}')
 async def detail(run_id: str, request: Request):
     who = await viewer(request)
-    return await request.app.state.workflow_demo.detail(who['user_id'], run_id)
+    return await request.app.state.workflow_demo.detail(who['demo_owner_id'], run_id)
 
 
 @router.get('/examples/api/workflows')
 async def history(request: Request):
     who = await viewer(request)
-    return await request.app.state.workflow_demo.history(who['user_id'])
+    return await request.app.state.workflow_demo.history(who['demo_owner_id'])
 
 
 @router.post('/examples/api/workflows/{run_id}/next')
 async def advance(run_id: str, request: Request, body: NextStep):
     csrf(request)
     who = await viewer(request)
-    return await request.app.state.workflow_demo.advance(who['user_id'], run_id, body.expected_step)
+    return await request.app.state.workflow_demo.advance(who['demo_owner_id'], run_id, body.expected_step)

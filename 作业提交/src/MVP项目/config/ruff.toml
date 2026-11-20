@@ -1,0 +1,11 @@
+# 从仓库入口显式指定本配置，避免新增根目录工具文件。
+target-version = "py311"
+line-length = 100
+
+[lint]
+# 首批拦截语法、未定义名称、无效控制流和未使用导入；后续逐步扩展风格规则。
+select = ["E9", "F63", "F7", "F82", "F401"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

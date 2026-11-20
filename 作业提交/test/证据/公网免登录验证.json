@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-11-08T01:29:34",
+  "base_url": "http://47.117.178.247",
+  "scope": "public_teaching_demo",
+  "checks": [
+    "健康接口HTTP200",
+    "未登录页面提供选案例与开始按钮",
+    "两个虚构案例各11步实际执行并确认结案",
+    "跨访客读取演示记录被拒绝",
+    "演示未签发zw_auth业务身份",
+    "公网Chrome两个案例自动播放并结案",
+    "公网390px页面无横向溢出",
+    "公网浏览器脚本错误0项"
+  ],
+  "cases": [
+    {
+      "preset": "residence-supplement",
+      "completed_steps": 11,
+      "status": "closed",
+      "close_reason": "confirmed_resolved",
+      "messages": 5,
+      "transfers": 2
+    },
+    {
+      "preset": "business-address",
+      "completed_steps": 11,
+      "status": "closed",
+      "close_reason": "confirmed_resolved",
+      "messages": 5,
+      "transfers": 2
+    }
+  ]
+}

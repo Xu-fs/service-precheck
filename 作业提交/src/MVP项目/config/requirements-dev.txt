@@ -1,0 +1,2 @@
+# 与运行依赖分开安装：python -m pip install -r config/requirements-dev.txt
+ruff==0.14.2

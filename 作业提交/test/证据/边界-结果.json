@@ -1,0 +1,26 @@
+[
+  {
+    "id": "test_materials.PrecheckTests.test_rule_change_and_historical_date_exception_are_explicit",
+    "input": "证件已过期但历史有效，再传入不存在的规则版本",
+    "expected": "标记需人工核验，错误版本拒绝",
+    "result": "通过",
+    "seconds": 0.0,
+    "log": "test_rule_change_and_historical_date_exception_are_explicit (test_materials.PrecheckTests.test_rule_change_and_historical_date_exception_are_explicit) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nOK\n"
+  },
+  {
+    "id": "test_materials.PrecheckTests.test_unreadable_present_file_is_not_claimed_missing",
+    "input": "材料存在但OCR不可用",
+    "expected": "结果为无法判断，不将识别失败视为缺件",
+    "result": "通过",
+    "seconds": 0.0,
+    "log": "test_unreadable_present_file_is_not_claimed_missing (test_materials.PrecheckTests.test_unreadable_present_file_is_not_claimed_missing) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n"
+  },
+  {
+    "id": "test_confirmed_tickets.ConfirmedTicketTests.test_concurrent_and_new_key_repetition_creates_once",
+    "input": "并发及使用新操作标识重复提交同一草稿",
+    "expected": "只创建一个工单",
+    "result": "通过",
+    "seconds": 9.219,
+    "log": "test_concurrent_and_new_key_repetition_creates_once (test_confirmed_tickets.ConfirmedTicketTests.test_concurrent_and_new_key_repetition_creates_once) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 9.212s\n\nOK\n"
+  }
+]

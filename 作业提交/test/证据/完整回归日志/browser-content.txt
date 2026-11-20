@@ -1,0 +1,88 @@
+Traceback (most recent call last):
+  File "E:\Grade3\GongJi\zhengwu\tests\browser_content.py", line 137, in <module>
+    ask(citizen, "第二事项示例清单要求什么？", expected=NO_EVIDENCE, confirm=True, matter_name="个体工商户设立登记")
+  File "E:\Grade3\GongJi\zhengwu\tests\browser_content.py", line 91, in ask
+    expect(page.locator(".message-content").last).to_have_text(expected, timeout=15000)
+  File "E:\Grade3\GongJi\zhengwu\.venv\Lib\site-packages\playwright\sync_api\_generated.py", line 15528, in to_have_text
+    self._sync(
+  File "E:\Grade3\GongJi\zhengwu\.venv\Lib\site-packages\playwright\_impl\_sync_base.py", line 111, in _sync
+    return task.result()
+           ^^^^^^^^^^^^^
+  File "E:\Grade3\GongJi\zhengwu\.venv\Lib\site-packages\playwright\_impl\_assertions.py", line 648, in to_have_text
+    await self._expect_impl(
+  File "E:\Grade3\GongJi\zhengwu\.venv\Lib\site-packages\playwright\_impl\_assertions.py", line 128, in _expect_impl
+    _record_soft_or_raise(
+  File "E:\Grade3\GongJi\zhengwu\.venv\Lib\site-packages\playwright\_impl\_assertions.py", line 60, in _record_soft_or_raise
+    raise error
+AssertionError: Locator expected to have text '现有办事指南中未找到相关依据'
+Actual value: None
+Error: element(s) not found 
+Call log:
+  - Expect "to_have_text" locator(".message-content").last with timeout 15000ms
+  - waiting for locator(".message-content").last
+
+Aria snapshot:
+- banner:
+  - link "易 政务易办 我的人工工单":
+    - /url: /
+  - link "返回指南咨询":
+    - /url: /
+- complementary:
+  - text: 人工服务协同
+  - heading "有问题， 继续沟通。" [level=1]
+  - paragraph: 接手：1个工作日内 首次答复：提交起连续48小时内
+  - group:
+    - heading "预设案例（示例）" [level=2]
+    - paragraph: 选择案例后填写提交，或自动演示完整流程。
+    - article:
+      - heading "居住证材料补正（示例）" [level=3]
+      - paragraph: 居住说明缺少地址，补充后由窗口初审、业务审核员复核、主任审核，最后由办事人确认结案。
+      - link "使用此案例":
+        - /url: /my/tickets?example=residence-supplement#create-title
+      - link "自动演示":
+        - /url: /examples/workflow?example=residence-supplement
+    - article:
+      - heading "个体工商户经营地址核对（示例）" [level=3]
+      - paragraph: 申请书与经营地址说明不一致，办事人澄清后逐级复核，主任给出处理意见，办事人确认结案。
+      - link "使用此案例":
+        - /url: /my/tickets?example=business-address#create-title
+      - link "自动演示":
+        - /url: /examples/workflow?example=business-address
+  - strong: （示例）
+  - paragraph: 仅填写虚构示例信息。共享材料请使用材料准备与人工协作。
+  - paragraph: 工单不是正式申请、预检记录或审批结论。
+- main:
+  - heading "我的人工工单" [level=1]
+  - paragraph: 当前账号：browser-content
+  - region "提交人工工单":
+    - heading "提交人工工单" [level=2]
+    - text: 事项
+    - combobox "事项":
+      - option "居住证申领"
+      - option "个体工商户设立登记" [selected]
+      - option "其他问题（人工分流）"
+    - text: 申请情形
+    - combobox "申请情形":
+      - option "普通设立（示例）" [selected]
+    - text: 问题标题
+    - textbox "问题标题": 第二事项示例清单要求什么？
+    - text: 问题描述
+    - textbox "问题描述": 第二事项示例清单要求什么？
+    - paragraph:
+      - text: 点击提交后将发送以上问题。普通咨询无需上传材料；如需共享示例材料或预检，请使用
+      - link "材料准备与人工协作":
+        - /url: /assistant
+      - text: 。正式办件尚未接入。
+    - button "提交工单"
+  - heading "我的工单列表" [level=2]
+  - text: 状态
+  - combobox "状态":
+    - option "全部状态" [selected]
+    - option "窗口待接手"
+    - option "处理中"
+    - option "待办事人确认"
+    - option "已完成"
+  - button "筛选"
+  - paragraph: 共 0 条
+  - paragraph: 暂无工单。
+  - navigation "工单分页": 第 1 / 1 页

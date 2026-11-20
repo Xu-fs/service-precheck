@@ -6,7 +6,7 @@ httpx>=0.27,<0.29
 # 办事人问答网页；浏览器验证用playwright单独安装，不纳入运行依赖。
 fastapi>=0.115,<1
 uvicorn>=0.30,<1
-sqlalchemy>=2.0,<3
+sqlalchemy[asyncio]>=2.0,<3
 aiosqlite>=0.20,<1
 jinja2>=3.1.6,<4
 # 工作人员后台第一批：JWT与服务端表单。

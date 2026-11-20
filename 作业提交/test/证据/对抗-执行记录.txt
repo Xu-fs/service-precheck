@@ -1,0 +1,22 @@
+test_bounded_loop_rejects_unknown_and_never_invents_success (test_agent_loop.AgentLoopTests.test_bounded_loop_rejects_unknown_and_never_invents_success) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.102s
+
+OK
+
+
+test_free_model_claim_is_not_shown_without_tool_evidence (test_agent_loop.AgentLoopTests.test_free_model_claim_is_not_shown_without_tool_evidence) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.097s
+
+OK
+
+
+test_fabricated_quote_unknown_id_and_malformed_response_refuse (test_guide_qa.GuideQATests.test_fabricated_quote_unknown_id_and_malformed_response_refuse) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK

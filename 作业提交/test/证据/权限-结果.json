@@ -1,0 +1,26 @@
+[
+  {
+    "id": "test_materials.MaterialTests.test_private_storage_requires_owner_and_explicit_consent",
+    "input": "匿名、其他用户、未授权上传及跨人读取",
+    "expected": "全部拒绝，所有者明确授权后可读",
+    "result": "通过",
+    "seconds": 2.562,
+    "log": "test_private_storage_requires_owner_and_explicit_consent (test_materials.MaterialTests.test_private_storage_requires_owner_and_explicit_consent) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 2.559s\n\nOK\n"
+  },
+  {
+    "id": "test_staff.StaffTests.test_engineer_is_not_business_administrator",
+    "input": "工程师访问业务内容",
+    "expected": "技术岗位不自动取得业务权限",
+    "result": "通过",
+    "seconds": 10.219,
+    "log": "test_engineer_is_not_business_administrator (test_staff.StaffTests.test_engineer_is_not_business_administrator) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 10.210s\n\nOK\n"
+  },
+  {
+    "id": "test_confirmed_tickets.ConfirmedTicketTests.test_unknown_matter_is_not_visible_to_ordinary_wildcard",
+    "input": "普通通配事项岗位查询未知事项队列",
+    "expected": "没有明确未知事项授权时不可见",
+    "result": "通过",
+    "seconds": 7.687,
+    "log": "test_unknown_matter_is_not_visible_to_ordinary_wildcard (test_confirmed_tickets.ConfirmedTicketTests.test_unknown_matter_is_not_visible_to_ordinary_wildcard) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 7.693s\n\nOK\n"
+  }
+]

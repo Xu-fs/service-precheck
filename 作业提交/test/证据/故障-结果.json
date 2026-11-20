@@ -1,0 +1,26 @@
+[
+  {
+    "id": "test_materials.MaterialTests.test_untrusted_processing_fails_closed_and_is_not_missing_material",
+    "input": "未开启可信教学材料处理时发起识别",
+    "expected": "返回隔离不可用，字段为空且不称缺件",
+    "result": "通过",
+    "seconds": 2.312,
+    "log": "test_untrusted_processing_fails_closed_and_is_not_missing_material (test_materials.MaterialTests.test_untrusted_processing_fails_closed_and_is_not_missing_material) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 2.313s\n\nOK\n"
+  },
+  {
+    "id": "test_materials.ExtractionTests.test_worker_timeout_reaps_process",
+    "input": "材料解析工作进程超时",
+    "expected": "受控返回失败并回收进程",
+    "result": "通过",
+    "seconds": 0.328,
+    "log": "test_worker_timeout_reaps_process (test_materials.ExtractionTests.test_worker_timeout_reaps_process) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.335s\n\nOK\n"
+  },
+  {
+    "id": "test_agent_loop.AgentLoopTests.test_model_cannot_replace_identity_or_loop_forever",
+    "input": "模型连续调用工具超过限定次数",
+    "expected": "使用服务端身份并在调用上限结束",
+    "result": "通过",
+    "seconds": 0.093,
+    "log": "test_model_cannot_replace_identity_or_loop_forever (test_agent_loop.AgentLoopTests.test_model_cannot_replace_identity_or_loop_forever) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.101s\n\nOK\n"
+  }
+]

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="description" content="政务易办示例指南咨询，回答附带原文依据。">
+  <title>办事指南咨询 · 政务易办</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/css/chat.css?v=20261101-welcome-1">
+  <script type="module" src="/static/js/chat.js?v=20261105-matter-ticket-1"></script>
+</head>
+<body class="guide-chat-page">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="政务易办首页"><span class="brand-mark" aria-hidden="true">易</span><span>政务易办<small>办事指南咨询</small></span></a>
+    <div class="account">
+      <a class="glass-button" href="/assistant"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5"/></svg><span>材料准备与人工协作</span></a>
+      <a class="glass-button" href="/my/tickets"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3M9 2h6v4H9zM7 11h10M7 16h6"/></svg><span>我的工单</span></a>
+      <span id="identity">公开咨询无需登录</span>
+      <button id="login-open" class="glass-button glass-button-accent" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5M3 12h12M10 7l5 5-5 5"/></svg><span>登录</span></button>
+      <button id="logout" class="glass-button" type="button" hidden>退出登录</button>
+    </div>
+    <a class="staff-login glass-button" href="/staff/login">工作人员登录</a>
+  </header>
+  <div class="workspace">
+    <aside class="sidebar" aria-label="咨询说明">
+      <div class="sidebar-top"><span class="eyebrow">办事前，先有依据</span><h1>把材料准备<br>问清楚。</h1><p>从指南中找答案，<br>每条回答都可以核对来源。</p></div>
+      <div class="matter-summary"><span class="section-label">本次咨询</span><strong id="matter-label">尚未确认事项</strong><button id="change-matter" class="sidebar-button" type="button">选择或切换事项</button></div>
+      <div class="boundary"><strong>（示例）</strong><p>示例事项使用虚构指南，便民服务提供官方公开指引。请勿输入身份证号、手机号等个人信息。</p><p>咨询不代表正式申请、受理或审批。</p></div>
+    </aside>
+    <main class="chat-panel">
+      <div class="chat-toolbar"><div><strong>指南问答</strong><span class="teaching-badge">（示例）</span></div><button id="new-chat" class="text-button" type="button">新建咨询</button></div>
+      <div id="scroll-area" class="scroll-area">
+        <section id="welcome" class="welcome" aria-labelledby="welcome-title">
+          <div class="guide-symbol" aria-hidden="true"><span></span><span></span><span></span></div>
+          <h2 id="welcome-title">欢迎来到政务易办</h2>
+          <p>您可以描述您的问题，或提交工单。</p>
+          <p class="scope-note">也可以选择一个预设工单案例：</p>
+          <div class="suggestions welcome-cases" aria-label="预设工单案例">
+            <a class="glass-button" href="/my/tickets?example=residence-supplement#create-title">居住证材料补正（示例）</a>
+            <a class="glass-button" href="/my/tickets?example=business-address#create-title">个体工商户经营地址核对（示例）</a>
+          </div>
+        </section>
+        <button id="load-older" type="button" class="text-button older" hidden>加载更早消息</button>
+        <div id="messages" class="messages" aria-label="咨询消息"></div>
+      </div>
+      <div class="composer-area">
+        <p id="global-status" class="global-status" role="status" aria-live="polite"></p>
+        <div class="quick-services" role="group" aria-label="快捷服务">
+          <a class="quick-service" href="/my/tickets#create-title">提交工单</a>
+          <button class="quick-service" type="button" data-question="我想咨询身份证补办，需要准备哪些材料，在哪里办理？">身份证补办</button>
+          <button class="quick-service" type="button" data-question="我想查询便民场馆的开放时间和预约方式。">便民场馆开放</button>
+        </div>
+        <form id="chat-form" class="composer">
+          <label class="sr-only" for="question">你的问题</label>
+          <textarea id="question" name="question" maxlength="2000" rows="2" placeholder="描述你想了解的材料要求……" required></textarea>
+          <div class="composer-controls"><span id="counter">0 / 2000</span><div><button id="stop" class="secondary-button" type="button" hidden>停止回答</button><button id="send" class="primary-button" type="submit">发送问题 <span aria-hidden="true">↑</span></button></div></div>
+        </form>
+        <p class="footer-note">指南咨询仅作参考；实际办理请以受理部门现行规定为准。<a href="/my/tickets">我的人工工单</a> · <a href="/assistant">材料上传与辅助预检</a>。</p>
+      </div>
+    </main>
+    <details id="notification-panel" class="notification-panel" open>
+      <summary><span>站内消息</span><span id="notification-count" class="notification-count" hidden aria-label="未读消息数量"></span><span class="notification-toggle" aria-hidden="true"></span></summary>
+      <div class="notification-body">
+        <div class="notification-toolbar"><p>工单动态与办理状态</p><button id="notifications-refresh" class="text-button" type="button" hidden>刷新消息</button></div>
+        <p id="notification-status" class="notification-status" role="status" aria-live="polite">登录后查看工单消息</p>
+        <div id="notification-items" class="notification-items"></div>
+        <button id="notifications-login" class="secondary-button" type="button">登录查看</button>
+      </div>
+    </details>
+  </div>
+  <dialog id="login-dialog" aria-labelledby="login-title">
+    <form id="login-form"><button id="login-close" type="button" class="dialog-close" aria-label="关闭登录窗口">×</button><h2 id="login-title">登录个人咨询</h2><p>使用维护人员创建的独立账号。公开咨询仍可免登录。</p><label for="username">账号</label><input id="username" name="username" autocomplete="username" maxlength="80" required><label for="password">密码</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="256" required><p id="login-error" class="error-text" role="alert"></p><button class="primary-button" type="submit">登录</button></form>
+  </dialog>
+</body>
+</html>

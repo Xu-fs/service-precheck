@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><style>body{font:18px "Microsoft YaHei",sans-serif;color:#172c3d;background:#f4f6f8;padding:40px;max-width:1150px;margin:auto}h1{font-size:32px}section{background:white;border:1px solid #ccd5df;border-radius:8px;margin:20px 0;padding:22px}h2{font-size:23px}p{line-height:1.6}code{font-size:14px;overflow-wrap:anywhere}pre{white-space:pre-wrap;font-size:13px;color:#46546a}</style><h1>政务易办 故障场景测试执行记录</h1><p>2026年11月7日 · 自动化执行记录可视化 · 这是实际测试日志的展示页，不是业务系统界面截图。虚构数据；模型相关测试使用替身。</p><section><h2>1 通过</h2><p><b>输入与操作</b> 未开启可信教学材料处理时发起识别</p><p><b>预期结果</b> 返回隔离不可用，字段为空且不称缺件</p><p><b>实际结果</b> 通过，耗时 2.312 秒</p><code>test_materials.MaterialTests.test_untrusted_processing_fails_closed_and_is_not_missing_material</code><pre>test_untrusted_processing_fails_closed_and_is_not_missing_material (test_materials.MaterialTests.test_untrusted_processing_fails_closed_and_is_not_missing_material) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 2.313s
+
+OK
+</pre></section><section><h2>2 通过</h2><p><b>输入与操作</b> 材料解析工作进程超时</p><p><b>预期结果</b> 受控返回失败并回收进程</p><p><b>实际结果</b> 通过，耗时 0.328 秒</p><code>test_materials.ExtractionTests.test_worker_timeout_reaps_process</code><pre>test_worker_timeout_reaps_process (test_materials.ExtractionTests.test_worker_timeout_reaps_process) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.335s
+
+OK
+</pre></section><section><h2>3 通过</h2><p><b>输入与操作</b> 模型连续调用工具超过限定次数</p><p><b>预期结果</b> 使用服务端身份并在调用上限结束</p><p><b>实际结果</b> 通过，耗时 0.093 秒</p><code>test_agent_loop.AgentLoopTests.test_model_cannot_replace_identity_or_loop_forever</code><pre>test_model_cannot_replace_identity_or_loop_forever (test_agent_loop.AgentLoopTests.test_model_cannot_replace_identity_or_loop_forever) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.101s
+
+OK
+</pre></section>

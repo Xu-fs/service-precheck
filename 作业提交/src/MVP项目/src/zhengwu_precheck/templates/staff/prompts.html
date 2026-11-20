@@ -1,0 +1,42 @@
+{% extends 'staff/base.html' %}
+{% block content %}
+<h1>提示词模板</h1>
+<p>按事项保存独立系统模板。保存后新问答使用新版本，历史问答保留当时版本；恢复旧内容也会生成一个新版本。</p>
+<form method="get" action="/staff/prompts">
+  <label for="matter_id">管理事项</label>
+  <select id="matter_id" name="matter_id">{% for key, name in matters.items() %}<option value="{{ key }}" {% if key == matter_id %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
+  <button type="submit">切换事项</button>
+</form>
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+<section aria-labelledby="prompt-current">
+  <h2 id="prompt-current">{{ matter_name }} · 当前生效版本 v{{ active.version }}</h2>
+  <form method="post" action="/staff/api/prompts/{{ matter_id }}/versions">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="expected_version" value="{{ active.version }}">
+    <p><label for="content">系统提示词（最多2000字）</label></p>
+    <textarea id="content" name="content" required maxlength="2000" rows="9" class="full-width">{{ active.content }}</textarea>
+    <p><label for="comment">修改说明</label> <input id="comment" name="comment" required maxlength="500"></p>
+    <button type="submit">保存并生效新版本</button>
+  </form>
+</section>
+<section aria-labelledby="prompt-history">
+  <h2 id="prompt-history">版本历史</h2>
+  {% for item in versions %}
+  <details>
+    <summary>v{{ item.version }}{% if item.version == active.version %}（当前生效）{% endif %} · {{ item.comment }}</summary>
+    <p>修改人：{{ item.author_id or '系统初始模板' }}{% if item.restored_from %} · 恢复自 v{{ item.restored_from }}{% endif %}</p>
+    <pre class="prewrap">{{ item.content }}</pre>
+    {% if item.version != active.version %}
+    <form method="post" action="/staff/api/prompts/{{ matter_id }}/restore">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="version" value="{{ item.version }}">
+      <input type="hidden" name="expected_version" value="{{ active.version }}">
+      <label for="restore-comment-{{ item.version }}">恢复说明</label>
+      <input id="restore-comment-{{ item.version }}" name="comment" required maxlength="500">
+      <button type="submit">恢复此内容为新版本</button>
+    </form>
+    {% endif %}
+  </details>
+  {% endfor %}
+</section>
+{% endblock %}

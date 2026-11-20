@@ -1,0 +1,22 @@
+test_untrusted_processing_fails_closed_and_is_not_missing_material (test_materials.MaterialTests.test_untrusted_processing_fails_closed_and_is_not_missing_material) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 2.313s
+
+OK
+
+
+test_worker_timeout_reaps_process (test_materials.ExtractionTests.test_worker_timeout_reaps_process) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.335s
+
+OK
+
+
+test_model_cannot_replace_identity_or_loop_forever (test_agent_loop.AgentLoopTests.test_model_cannot_replace_identity_or_loop_forever) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.101s
+
+OK
